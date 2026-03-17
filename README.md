@@ -1,13 +1,25 @@
-# CS490StackedProject
+# CS490 Stacked Project
 
 ## Tech Stack
 
-### React + Tailwind CSS (Javascript, HTML, CSS)
+### Frontend
+- React  
+- Tailwind CSS 
+- Javascript / HTML / CSS
 
-### Fastapi (Python)
+### Backend
+- FastAPI (Python)
 
-### PostgreSQL
+### Database
+- PostgreSQL
 
-### Vercel + Firebase
+### ORM
+- SQLAlchemy
 
-### Gemini API
+### Deployment / Services
+- Vercel
+- Firebase
+
+### APIs
+- Gemini API
+
