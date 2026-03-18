@@ -19,7 +19,7 @@ Key capabilities include:
 
 ### 1. Application Tracking
   - Add/edit job applications
-  - Track status(Applied, Interview, Offer, Rejected)
+  - Track status (Applied, Interview, Offer, Rejected)
   - Store company, role, dates, and notes
 
 ### 2. Workflow / Board View
@@ -35,7 +35,7 @@ Key capabilities include:
 ### Frontend
 - React  
 - Tailwind CSS 
-- Javascript / HTML / CSS
+- JavaScript / HTML / CSS
 
 ### Backend
 - FastAPI (Python)
