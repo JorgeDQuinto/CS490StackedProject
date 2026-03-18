@@ -17,20 +17,20 @@ Key capabilities include:
 
 ## ⚙️ Features
 
-1. Application Tracking
+### 1. Application Tracking
   - Add/edit job applications
   - Track status(Applied, Interview, Offer, Rejected)
   - Store company, role, dates, and notes
 
-2. Workflow / Board View
-  - Kanban-style board
-  - Columns: To Apply, Applied, Interviewing, Offer, Rejected
+### 2. Workflow / Board View
+   - Kanban-style board
+   - Columns: To Apply, Applied, Interviewing, Offer, Rejected
 
-3. AI-Powered Tools
+### 3. AI-Powered Tools
    - Resume tailoring
    - Cover letter generation
 
-## Tech Stack
+## 🧰 Tech Stack
 
 ### Frontend
 - React  
