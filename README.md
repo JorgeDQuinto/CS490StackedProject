@@ -59,7 +59,7 @@ Key capabilities include:
 - Active job seekers
   - Students and new graduates
   - Career switchers
-  - Professionals applying to more than one role   
+  - Professionals applying for multiple roles
 
 ### 🎯 Secondary Audience
   - Passive job seekers exploring oppurtunities
