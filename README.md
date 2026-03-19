@@ -84,8 +84,16 @@ Key capabilities include:
 
 ### Naming Conventions
   - React components: PascalCase (e.g., JobCard.jsx)
-  - JavaScript variables/functions: camelCase
-  - Python variables/functions: snake_case
+  - JavaScript variables/functions: camelCase (addUser,searchBar())
+  - Javascript constants
+    - True constants: UPPERCASE (e.g, PI, API_URL)
+    - Regular constants: camelCase (e.g, const userName, const totalPrice)
+    - Boolean constans: start with "is", "has", "can" (e.g, isActive, hasPermission, canEdit)
+    - Object & arrays: camelCase (e.g, const userProfile = { name: "Alice", age:26 }, const itemList = {"apple", "orange"});
+    - Class-level or module constants: UPPERCASE {e.g, const DEFAULT_TIMEOUT, const ERROR_MESSAGE})   
+  
+  - Python backend
+    variables/functions: snake_case
   - Constants: UPPER_SNAKE_CASE
 ## 🧰 Tech Stack
 
