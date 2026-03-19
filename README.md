@@ -30,6 +30,21 @@ Key capabilities include:
    - Resume tailoring
    - Cover letter generation
 
+### 4. Job Search Organization 
+   - Save job postings
+   - Tag or categorize applications
+   - Notes per job
+
+### 5. Insights / Analytics
+   - Application success rate
+   - Interview rate
+   - Time to response
+   - Trends (Which roles get responses)
+
+### 6. Basic User System
+   - User accounts/login
+   - Personal dashboard
+
 ## 🧰 Tech Stack
 
 ### Frontend
