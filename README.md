@@ -80,6 +80,13 @@ Key capabilities include:
 - **Insight** - Data-driven understanding of job search performance
 - **Control** - Candidate-focused tools instead of employer-centric systems  
 
+## Coding Standards
+
+### Naming Conventions
+  - React components: PascalCase (e.g., JobCard.jsx)
+  - JavaScript variables/functions: camelCase
+  - Python variables/functions: snake_case
+  - Constants: UPPER_SNAKE_CASE
 ## 🧰 Tech Stack
 
 ### Frontend
