@@ -80,7 +80,46 @@ Key capabilities include:
 - **Insight** - Data-driven understanding of job search performance
 - **Control** - Candidate-focused tools instead of employer-centric systems  
 
-## Coding Standards
+## Coding Conventions
+- General
+- Write clean, simple, and readable code
+- Keep functions small and focused
+- Avoid deep nesting (use early returns)
+- Use constants instead of hardcoded values
+- Remove unused code
+
+### Frontend (React)
+- Use functional components and hooks
+- Keep UI and logic separate (use hooks/services)
+- Store API calls in services/
+
+- Example:
+- <img width="613" height="95" alt="image" src="https://github.com/user-attachments/assets/b46ee7c6-7adc-42c0-b919-0a17efd05c7f" />
+
+### Backend (FastAPI)
+- Keep routes thin; move logic to services/
+- Use Pydantic models for validation
+- Always use type hints
+
+- Example:
+- <img width="604" height="87" alt="image" src="https://github.com/user-attachments/assets/fc3e1704-95ef-4e1c-b9ef-a0a673e2511e" />
+
+#### Functions
+- One responsibility per function
+- Use clear, descriptive names
+- Example:
+- <img width="644" height="226" alt="image" src="https://github.com/user-attachments/assets/b16a40f5-27ad-4a68-a17e-a97a427c7a06" />
+
+#### Comments
+- Keep comments minimal
+- Explain why, not what
+
+- Example (JavaScript):
+  // retry request to handle temporary API failure 
+  
+#### Consistency
+- Follow the same patterns as codebase
+- Reuse existing code instead of duplicating logic
 
 ## 🏷️ Naming Conventions
 
