@@ -2,7 +2,7 @@
 
 ## 📌 Project Overview
 
-This project is a candidate-focused Application Tracking System (ATS) that helps job seekers, manage their applications, generate AI-powered content, and gain insights into their job search process.
+This project is a candidate-focused Application Tracking System (ATS) that helps job seekers manage their applications, generate AI-powered content, and gain insights into their job search process.
 
 ## 🎯 Scope
 
@@ -45,13 +45,13 @@ Key capabilities include:
    - User accounts/login
    - Personal dashboard
 
-## 🚫 Out Of scope
+## 🚫 Out of Scope
 - To keep the project focused and realistic, the following features are not included:
 
-  -  Employer-side tools(no recruiter dashboard)
-  -  Full job board integration(optional stretch)
+  -  Employer-side tools (no recruiter dashboard)
+  -  Full job board integration (optional stretch)
   -  Advanced AI models(Using simple APIs instead)
-  -  Complex colloborations/ too many team features
+  -  Complex collaborations / too many team features
 
 ## 👥 Audience
 
@@ -62,8 +62,8 @@ Key capabilities include:
   - Professionals applying for multiple roles
 
 ### 🎯 Secondary Audience
-  - Passive job seekers exploring oppurtunities
-  - Freelancer tracking job oppurtunities
+  - Passive job seekers exploring opportunities
+  - Freelancer tracking job opportunities
   - Bootcamp students or career program participants
 
 
@@ -71,7 +71,7 @@ Key capabilities include:
   - Losing track of job applications
   - Rewriting resumes repeatedly
   - Lack of visibility into application progress
-  - Disogranized notes and deadlines
+  - Disorganized notes and deadlines
   - No data on what strategies are effective
 
 ### 💡 Value Proposition
@@ -81,7 +81,8 @@ Key capabilities include:
 - **Control** - Candidate-focused tools instead of employer-centric systems  
 
 ## Coding Conventions
-- General
+
+### General
 - Write clean, simple, and readable code
 - Keep functions small and focused
 - Avoid deep nesting (use early returns)
@@ -91,34 +92,53 @@ Key capabilities include:
 ### Frontend (React)
 - Use functional components and hooks
 - Keep UI and logic separate (use hooks/services)
-- Store API calls in services/
+- Store API calls in `services/`
 
-- Example:
-- <img width="613" height="95" alt="image" src="https://github.com/user-attachments/assets/b46ee7c6-7adc-42c0-b919-0a17efd05c7f" />
+**Example:**
+```javascript
+function JobCard({ title, company }) {
+  return <div>{title} at {company}</div>;
+}
+```
 
 ### Backend (FastAPI)
-- Keep routes thin; move logic to services/
+- Keep routes thin; move logic to `services/`
 - Use Pydantic models for validation
 - Always use type hints
 
-- Example:
-- <img width="604" height="87" alt="image" src="https://github.com/user-attachments/assets/fc3e1704-95ef-4e1c-b9ef-a0a673e2511e" />
+**Example:**
+```python
+def create_application(data: ApplicationCreate) -> ApplicationResponse:
+    return service.create_application(data)
+```
 
-#### Functions
+### Functions
 - One responsibility per function
 - Use clear, descriptive names
-- Example:
-- <img width="644" height="226" alt="image" src="https://github.com/user-attachments/assets/b16a40f5-27ad-4a68-a17e-a97a427c7a06" />
 
-#### Comments
+**Bad:**
+```python
+def process(data):
+    pass
+```
+
+**Good:**
+```python
+def process_job_application(application_data):
+    pass
+```
+
+### Comments
 - Keep comments minimal
 - Explain why, not what
 
-- Example (JavaScript):
-  // retry request to handle temporary API failure 
-  
-#### Consistency
-- Follow the same patterns as codebase
+**Example:**
+```javascript
+// Retry request to handle a temporary API failure.
+```
+
+### Consistency
+- Follow the same patterns across the codebase
 - Reuse existing code instead of duplicating logic
 
 ## 🏷️ Naming Conventions
@@ -190,55 +210,74 @@ https://peps.python.org/pep-0008/
 
 ### 🔧 Linting & Formatting
 
-Frontend:
+### Frontend
 - Use ESLint for linting
 - Use Prettier for formatting
 - 2-space indentation
 - Use semicolons consistently
 
-Backend:
-- Follow PEP 8 style guide
-- https://peps.python.org/pep-0008/ 
+### Backend
+- Follow the PEP 8 style guide
 - Use Black for formatting
-- https://black.readthedocs.io/en/stable/
-- Maximum line length: 88 characters(default black setting)
+- Maximum line length: 88 characters (default Black setting)
+
 
 ## ⚠️ Error Handling
 
-Backend:
-- Use FastAPI HTTPException for API errors
+### Backend
+- Use FastAPI `HTTPException` for API errors
 - Return clear and consistent error messages
 - Avoid exposing internal server errors to users
-- <img width="657" height="174" alt="image" src="https://github.com/user-attachments/assets/7c87fa26-b934-465f-b304-34aba2d15842" />
 
+**Example:**
+```json
+{
+  "success": false,
+  "error": "Not Found",
+  "message": "Job application does not exist"
+}
+```
 
-Frontend:
+### Frontend
 - Display user-friendly error messages
 - Handle API errors gracefully (no crashes)
 - Always account for loading, success, and error states
-- <img width="667" height="199" alt="image" src="https://github.com/user-attachments/assets/24dd0a78-0fca-412b-9436-56a0a6826322" />
+
+**Example:**
+```javascript
+try {
+  const response = await api.getApplications();
+} catch (error) {
+  console.error(error);
+  setError("Something went wrong. Please try again.");
+}
+```
 
 ## 🔌 API Response Conventions
 
 All API responses should follow a consistent JSON format.
 
-Success:
+**Success:**
+```json
 {
   "success": true,
-  "data": {...}
+  "data": {}
 }
+```
 
-Error:
+**Error:**
+```json
 {
   "success": false,
   "error": "Bad Request",
   "message": "Invalid input"
 }
+```
 
-Rules:
+**Rules:**
 - Always return JSON responses
-- Use consistent keys: success, data, error, message
-- Use proper HTTP status codes (200, 201, 400, 404, 500)
+- Use consistent keys: `success`, `data`, `error`, `message`
+- Use proper HTTP status codes (`200`, `201`, `400`, `404`, `500`)
 
 ## 📁 Project Folder Structure
 
@@ -306,4 +345,3 @@ cs490-stacked-project/
 
 ### APIs
 - Gemini API
-
