@@ -1,9 +1,42 @@
+# Environment
 .env
 backend/.env
 env/
 venv/
+backend/venv/
+.venv/
 
+# Python cache
 __pycache__/
-*.db
+*.py[cod]
+*.pyo
+*.pyd
+.Python
 
-pytest.ini
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Test artifacts
+test_results.txt
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node / Frontend
+node_modules/
+dist/
+build/
+.next/
+
+# Logs
+*.log
