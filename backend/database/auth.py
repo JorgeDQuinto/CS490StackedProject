@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
@@ -8,6 +9,7 @@ from sqlalchemy.orm import Session
 
 # Ensure these imports point to your actual file locations
 from database import get_db, get_settings
+from database.models.token_blacklist import TokenBlacklist
 from database.models.user import User
 
 settings = get_settings()
@@ -36,6 +38,7 @@ def create_access_token(data: dict) -> str:
         minutes=settings.access_token_expire_minutes
     )
     to_encode["exp"] = expire
+    to_encode["jti"] = secrets.token_urlsafe(32)
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
 
@@ -62,6 +65,10 @@ def get_current_user(
 
     email: str = payload.get("sub")
     if email is None:
+        raise credentials_exception
+
+    jti: str = payload.get("jti")
+    if jti and db.query(TokenBlacklist).filter(TokenBlacklist.jti == jti).first():
         raise credentials_exception
 
     user = db.query(User).filter(User.email == email).first()
