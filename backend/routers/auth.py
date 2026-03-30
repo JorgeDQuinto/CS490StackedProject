@@ -10,12 +10,15 @@ from utils.email import send_password_reset_email
 from database import get_db
 from database.auth import (
     create_access_token,
+    decode_access_token,
     get_current_user,
     get_password_hash,
+    oauth2_scheme,
     verify_password,
 )
 from database.models.credentials import Credentials
 from database.models.password_reset import PasswordResetToken
+from database.models.token_blacklist import TokenBlacklist
 from database.models.user import User
 from schemas import (
     ForgotPasswordRequest,
@@ -34,7 +37,18 @@ def get_me(current_user: User = Depends(get_current_user)):
 
 
 @router.post("/logout")
-def logout(_: User = Depends(get_current_user)):
+def logout(
+    token: str = Depends(oauth2_scheme),
+    _: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    payload = decode_access_token(token)
+    jti = payload.get("jti")
+    exp = payload.get("exp")
+    if jti and exp:
+        expires_at = datetime.fromtimestamp(exp, tz=timezone.utc)
+        db.add(TokenBlacklist(jti=jti, expires_at=expires_at))
+        db.commit()
     return {"message": "Logged out successfully"}
 
 

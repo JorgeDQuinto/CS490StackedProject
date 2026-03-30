@@ -8,4 +8,5 @@ from database.models.job_activity import JobActivity
 from database.models.password_reset import PasswordResetToken
 from database.models.position import Position
 from database.models.profile import Profile
+from database.models.token_blacklist import TokenBlacklist
 from database.models.user import User
