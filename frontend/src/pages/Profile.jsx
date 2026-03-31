@@ -321,7 +321,7 @@ const styles = {
     alignItems: "center",
     marginBottom: "12px",
   },
-  cardTitle: { fontSize: "22px", margin: 0 },
+  cardTitle: { fontSize: "22px", margin: 0, color: "#444" },
   editBtn: {
     padding: "4px 14px",
     border: "1px solid #ccc",
@@ -329,8 +329,9 @@ const styles = {
     background: "none",
     cursor: "pointer",
     fontSize: "14px",
+    color: "#333",
   },
-  percentageText: { fontSize: "24px", fontWeight: "700" },
+  percentageText: { fontSize: "24px", fontWeight: "700", color: "#333" },
   progressBar: {
     width: "100%",
     height: "14px",
@@ -350,16 +351,17 @@ const styles = {
     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
     gap: "16px",
   },
-  summaryLabel: { fontSize: "13px", color: "#666", margin: 0 },
+  summaryLabel: { fontSize: "13px", color: "#555", margin: 0 },
   summaryValue: {
     fontSize: "15px",
     fontWeight: "600",
+    color: "#222",
     wordBreak: "break-word",
     margin: "4px 0 0",
   },
   summaryText: { fontSize: "15px", color: "#333", lineHeight: "1.6" },
   missingList: { paddingLeft: "20px" },
-  missingItem: { marginBottom: "8px" },
+  missingItem: { marginBottom: "8px", color: "#333" },
   // Modal
   overlay: {
     position: "fixed",
@@ -380,9 +382,9 @@ const styles = {
     flexDirection: "column",
     gap: "12px",
   },
-  modalTitle: { margin: 0, fontSize: "18px" },
+  modalTitle: { margin: 0, fontSize: "18px", color: "#222" },
   modalField: { display: "flex", flexDirection: "column", gap: "4px" },
-  modalLabel: { fontSize: "14px", fontWeight: "600" },
+  modalLabel: { fontSize: "14px", fontWeight: "600", color: "#333" },
   modalInput: {
     padding: "8px 10px",
     borderRadius: "6px",
@@ -401,6 +403,7 @@ const styles = {
     border: "1px solid #ccc",
     background: "none",
     cursor: "pointer",
+    color: "#333",
   },
   saveBtn: {
     padding: "8px 16px",
