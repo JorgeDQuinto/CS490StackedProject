@@ -11,7 +11,7 @@ from database.models.applied_jobs import (
     update_applied_job,
 )
 from database.models.job_activity import create_job_activity, get_job_activities
-from database.models.position import create_position, get_position
+from database.models.position import create_position, get_all_positions, get_position
 from database.models.user import User
 from schemas import (
     ApplicationCreate,
@@ -20,6 +20,7 @@ from schemas import (
     JobActivityResponse,
     PositionCreate,
     PositionResponse,
+    PositionWithCompanyResponse,
 )
 
 router = APIRouter()
@@ -28,6 +29,25 @@ router = APIRouter()
 # --------------------------------------------------------------------------- #
 #  Positions                                                                    #
 # --------------------------------------------------------------------------- #
+
+
+@router.get("/positions/", response_model=list[PositionWithCompanyResponse])
+def read_all_positions(session: Session = Depends(get_db)):
+    positions = get_all_positions(session)
+    result = []
+    for p in positions:
+        result.append(PositionWithCompanyResponse(
+            position_id=p.position_id,
+            company_id=p.company_id,
+            company_name=p.company.name if p.company else "Unknown",
+            title=p.title,
+            listing_date=p.listing_date,
+            salary=p.salary,
+            education_req=p.education_req,
+            experience_req=p.experience_req,
+            description=p.description,
+        ))
+    return result
 
 
 @router.post(

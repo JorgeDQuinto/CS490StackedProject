@@ -1,205 +1,194 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const API = "http://localhost:8000";
+
+function Section({ title, children, onEdit }) {
+  return (
+    <div style={styles.section}>
+      <div style={styles.sectionHeader}>
+        <h2 style={styles.sectionTitle}>{title}</h2>
+        <button type="button" style={styles.editBtn} onClick={onEdit}>
+          Edit
+        </button>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Field({ label, value }) {
+  return (
+    <div style={styles.field}>
+      <span style={styles.fieldLabel}>{label}</span>
+      <span style={styles.fieldValue}>{value || <em style={{ color: "#aaa" }}>Not set</em>}</span>
+    </div>
+  );
+}
+
+function EditModal({ title, fields, onSave, onCancel }) {
+  const [values, setValues] = useState(() =>
+    Object.fromEntries(fields.map((f) => [f.name, f.value]))
+  );
+  const [error, setError] = useState("");
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setValues((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSave = async () => {
+    setError("");
+    const err = await onSave(values);
+    if (err) setError(err);
+  };
+
+  return (
+    <div style={styles.overlay}>
+      <div style={styles.modal}>
+        <h3 style={styles.modalTitle}>{title}</h3>
+        {fields.map((f) => (
+          <div key={f.name} style={styles.modalField}>
+            <label style={styles.modalLabel}>{f.label}</label>
+            <input
+              type={f.type || "text"}
+              name={f.name}
+              value={values[f.name]}
+              onChange={handleChange}
+              style={styles.modalInput}
+              placeholder={f.placeholder || ""}
+              maxLength={f.maxLength}
+            />
+          </div>
+        ))}
+        {error && <p style={styles.error}>{error}</p>}
+        <div style={styles.modalActions}>
+          <button style={styles.cancelBtn} onClick={onCancel}>Cancel</button>
+          <button style={styles.saveBtn} onClick={handleSave}>Save</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function Settings() {
-  // I kept all the form values inside one object so everything related to the settings form stays in one place and is easier to update.
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    emailNotifications: true,
-    darkMode: false,
-  });
-
-  // This stores validation errors for specific fields.
-  // For example, if email is invalid, errors.email will hold that message.
-  const [errors, setErrors] = useState({});
-
-  // This is just for user feedback after submitting the form.
-  // Right now it shows a simple success or failure message.
+  const [profile, setProfile] = useState(null);
+  const [email, setEmail] = useState("");
+  const [modal, setModal] = useState(null); // null | "name" | "contact"
   const [statusMessage, setStatusMessage] = useState("");
 
-  // This helps simulate a real save action.
-  // While this is true, the button changes to save.
-  const [isSaving, setIsSaving] = useState(false);
+  const token = localStorage.getItem("token");
 
-  // This handles both text inputs and checkboxes.
-  // For checkboxes, I need to use "checked" instead of "value".
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+  useEffect(() => {
+    if (!token) return;
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
+    fetch(`${API}/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((d) => setEmail(d.email || ""));
 
-  // Keeping validation in its own function makes the submit logic cleaner.
-  // This also makes it easier to expand later if more settings get added.
-  const validateForm = () => {
-    const newErrors = {};
+    fetch(`${API}/profile/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) setProfile(d); });
+  }, []);
 
-    // Full name should not be blank
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = "Full name is required.";
+  const saveProfile = async (values) => {
+    const res = await fetch(`${API}/profile/${profile.profile_id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(values),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return err.detail || "Failed to save.";
     }
 
-    // Email should not be blank and should at least look like an email
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required.";
-    } else if (!formData.email.includes("@")) {
-      newErrors.email = "Enter a valid email.";
-    }
-
-    return newErrors;
-  };
-
-  // This runs when the user clicks Save Changes.
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    // Run validation first before pretending to save anything
-    const validationErrors = validateForm();
-    setErrors(validationErrors);
-
-    // Clear any old status message so the user only sees the newest result
-    setStatusMessage("");
-
-    // If there are validation errors, stop here
-    if (Object.keys(validationErrors).length > 0) {
-      return;
-    }
-
-    setIsSaving(true);
-
-    try {
-      // This is just simulating a backend request for now.
-      // Later this can be replaced with a real API call.
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      setStatusMessage("Settings saved.");
-    } catch (error) {
-      // Even though this mock version probably will not fail,
-      // I still kept this here because real save logic should handle errors.
-      setStatusMessage("Failed to save settings.");
-    } finally {
-      // Always turn off the loading state at the end
-      setIsSaving(false);
-    }
+    const updated = await res.json();
+    setProfile(updated);
+    setModal(null);
+    setStatusMessage("Settings saved.");
+    setTimeout(() => setStatusMessage(""), 3000);
+    return null;
   };
 
   return (
     <div style={styles.page}>
       <h1 style={styles.title}>Settings</h1>
+      <p style={styles.subtitle}>Manage your account preferences.</p>
 
-      <p style={styles.subtitle}>
-        Manage your account preferences and application settings.
-      </p>
+      {statusMessage && <p style={styles.status}>{statusMessage}</p>}
 
-      <form onSubmit={handleSubmit} style={styles.formCard}>
-        {/* Account section holds the main user identity fields */}
+      <div style={styles.formCard}>
+
+        {/* Account */}
+        <Section title="Account" onEdit={() => setModal("name")}>
+          <Field label="First Name" value={profile?.first_name} />
+          <Field label="Last Name"  value={profile?.last_name} />
+          <Field label="Email"      value={email} />
+        </Section>
+
+        <hr style={styles.divider} />
+
+        {/* Contact */}
+        <Section title="Contact" onEdit={() => setModal("contact")}>
+          <Field label="Phone"       value={profile?.phone_number} />
+          <Field label="Date of Birth" value={profile?.dob} />
+        </Section>
+
+        <hr style={styles.divider} />
+
+        {/* Security — no edit modal, placeholder */}
         <div style={styles.section}>
-          <h2 style={styles.sectionTitle}>Account</h2>
-
-          <label style={styles.label}>Full Name</label>
-          <input
-            type="text"
-            name="fullName"
-            value={formData.fullName}
-            onChange={handleChange}
-            style={styles.input}
-            placeholder="Enter your full name"
-          />
-          {errors.fullName && <p style={styles.error}>{errors.fullName}</p>}
-
-          <label style={styles.label}>Email</label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            style={styles.input}
-            placeholder="Enter your email"
-          />
-          {errors.email && <p style={styles.error}>{errors.email}</p>}
-        </div>
-
-        {/* Preferences section is using local state for now.
-            The checkboxes work, but they are not hooked up to a backend yet. */}
-        <div style={styles.section}>
-          <h2 style={styles.sectionTitle}>Preferences</h2>
-
-          <label style={styles.checkboxRow}>
-            <input
-              type="checkbox"
-              name="emailNotifications"
-              checked={formData.emailNotifications}
-              onChange={handleChange}
-            />
-            Email notifications
-          </label>
-
-          <label style={styles.checkboxRow}>
-            <input
-              type="checkbox"
-              name="darkMode"
-              checked={formData.darkMode}
-              onChange={handleChange}
-            />
-            Dark mode
-          </label>
-
-          {/* I added these helper lines so the toggles feel more obvious.
-              That way, when the user clicks them, the page visibly updates. */}
-          <p style={styles.helperText}>
-            Email notifications are currently{" "}
-            <strong>{formData.emailNotifications ? "enabled" : "disabled"}</strong>.
-          </p>
-
-          <p style={styles.helperText}>
-            Dark mode is currently{" "}
-            <strong>{formData.darkMode ? "enabled" : "disabled"}</strong>.
-          </p>
-        </div>
-
-        {/* This is just a placeholder section for now.
-            The button does not do anything yet, but it makes the page feel more complete. */}
-        <div style={styles.section}>
-          <h2 style={styles.sectionTitle}>Security</h2>
+          <div style={styles.sectionHeader}>
+            <h2 style={styles.sectionTitle}>Security</h2>
+          </div>
           <button type="button" style={styles.secondaryButton}>
             Change Password
           </button>
         </div>
 
-        {/* Main submit button */}
-        <div style={styles.actions}>
-          <button type="submit" style={styles.primaryButton} disabled={isSaving}>
-            {isSaving ? "Saving..." : "Save Changes"}
-          </button>
-        </div>
+      </div>
 
-        {/* This only shows after submit if there is a success/failure message */}
-        {statusMessage && <p style={styles.status}>{statusMessage}</p>}
-      </form>
+      {/* Name edit modal */}
+      {modal === "name" && (
+        <EditModal
+          title="Edit Name"
+          fields={[
+            { name: "first_name", label: "First Name", value: profile?.first_name || "" },
+            { name: "last_name",  label: "Last Name",  value: profile?.last_name  || "" },
+          ]}
+          onSave={saveProfile}
+          onCancel={() => setModal(null)}
+        />
+      )}
+
+      {/* Contact edit modal */}
+      {modal === "contact" && (
+        <EditModal
+          title="Edit Contact"
+          fields={[
+            { name: "phone_number", label: "Phone",         value: profile?.phone_number || "", placeholder: "555-0100" },
+            { name: "dob",          label: "Date of Birth", value: profile?.dob          || "", type: "date" },
+          ]}
+          onSave={saveProfile}
+          onCancel={() => setModal(null)}
+        />
+      )}
     </div>
   );
 }
 
-// I kept the styles in this file for now just to move faster during the baseline build.
-// Later we can move this into a separate CSS file to clean things up.
 const styles = {
   page: {
-    maxWidth: "800px",
+    maxWidth: "720px",
     margin: "0 auto",
     padding: "32px 20px",
     fontFamily: "Arial, sans-serif",
   },
-  title: {
-    fontSize: "32px",
-    marginBottom: "8px",
-  },
-  subtitle: {
-    color: "#555",
-    marginBottom: "24px",
-  },
+  title: { fontSize: "32px", marginBottom: "8px" },
+  subtitle: { color: "#555", marginBottom: "24px" },
   formCard: {
     border: "1px solid #ddd",
     borderRadius: "12px",
@@ -207,59 +196,87 @@ const styles = {
     backgroundColor: "#fff",
     display: "flex",
     flexDirection: "column",
-    gap: "24px",
+    gap: "0",
   },
-  section: {
+  section: { padding: "16px 0" },
+  sectionHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "12px",
+  },
+  sectionTitle: { fontSize: "18px", margin: 0 },
+  editBtn: {
+    padding: "4px 14px",
+    border: "1px solid #ccc",
+    borderRadius: "6px",
+    background: "none",
+    cursor: "pointer",
+    fontSize: "14px",
+  },
+  field: {
+    display: "flex",
+    gap: "16px",
+    padding: "6px 0",
+    fontSize: "15px",
+  },
+  fieldLabel: { color: "#888", width: "140px", flexShrink: 0 },
+  fieldValue: { color: "#222" },
+  divider: { border: "none", borderTop: "1px solid #eee", margin: 0 },
+  secondaryButton: {
+    padding: "8px 16px",
+    borderRadius: "8px",
+    border: "1px solid #ccc",
+    cursor: "pointer",
+    fontSize: "14px",
+  },
+  status: { color: "green", fontSize: "14px", marginBottom: "12px" },
+  // Modal
+  overlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.4)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1000,
+  },
+  modal: {
+    background: "#fff",
+    borderRadius: "12px",
+    padding: "28px",
+    width: "100%",
+    maxWidth: "400px",
     display: "flex",
     flexDirection: "column",
     gap: "12px",
   },
-  sectionTitle: {
-    fontSize: "20px",
-  },
-  label: {
-    fontWeight: "600",
-  },
-  input: {
-    padding: "10px",
-    borderRadius: "8px",
+  modalTitle: { margin: 0, fontSize: "18px" },
+  modalField: { display: "flex", flexDirection: "column", gap: "4px" },
+  modalLabel: { fontSize: "14px", fontWeight: "600" },
+  modalInput: {
+    padding: "8px 10px",
+    borderRadius: "6px",
     border: "1px solid #ccc",
-  },
-  checkboxRow: {
-    display: "flex",
-    gap: "10px",
-    alignItems: "center",
-  },
-  helperText: {
     fontSize: "14px",
-    color: "#555",
-    margin: 0,
   },
-  actions: {
-    display: "flex",
-    justifyContent: "flex-end",
+  modalActions: { display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" },
+  cancelBtn: {
+    padding: "8px 16px",
+    borderRadius: "6px",
+    border: "1px solid #ccc",
+    background: "none",
+    cursor: "pointer",
   },
-  primaryButton: {
-    padding: "10px 16px",
-    borderRadius: "8px",
+  saveBtn: {
+    padding: "8px 16px",
+    borderRadius: "6px",
     border: "none",
+    background: "#4f8ef7",
+    color: "#fff",
     cursor: "pointer",
   },
-  secondaryButton: {
-    padding: "10px 16px",
-    borderRadius: "8px",
-    border: "1px solid #ccc",
-    cursor: "pointer",
-  },
-  error: {
-    color: "red",
-    fontSize: "14px",
-    margin: 0,
-  },
-  status: {
-    color: "green",
-    fontSize: "14px",
-  },
+  error: { color: "red", fontSize: "13px", margin: 0 },
 };
 
 export default Settings;

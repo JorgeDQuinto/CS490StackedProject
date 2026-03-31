@@ -1,187 +1,161 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+const API = "http://localhost:8000";
 
 function JobForm() {
-  // This stores all form values in one place
+  const [companies, setCompanies] = useState([]);
   const [formData, setFormData] = useState({
-    jobTitle: "",
-    company: "",
-    status: "Applied",
-    notes: "",
+    company_name: "",
+    title: "",
+    listing_date: new Date().toISOString().split("T")[0],
+    salary: "",
+    education_req: "",
+    experience_req: "",
+    description: "",
   });
-
-  // Store validation errors
   const [errors, setErrors] = useState({});
-
-  // Track loading state
   const [isSaving, setIsSaving] = useState(false);
-
-  // Success message
   const [message, setMessage] = useState("");
+  const navigate = useNavigate();
+  const token = localStorage.getItem("token");
 
-  // Handle input updates
+  useEffect(() => {
+    fetch(`${API}/company/`)
+      .then((r) => r.json())
+      .then(setCompanies);
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Basic validation
   const validate = () => {
-    const newErrors = {};
-
-    if (!formData.jobTitle.trim()) newErrors.jobTitle = "Job title is required.";
-
-    if (!formData.company.trim()) newErrors.company = "Company is required.";
-
-    return newErrors;
+    const errs = {};
+    if (!formData.company_name.trim()) errs.company_name = "Company name is required.";
+    if (!formData.title.trim()) errs.title = "Job title is required.";
+    if (!formData.listing_date) errs.listing_date = "Listing date is required.";
+    return errs;
   };
 
-  // Handle submit
+  const resolveCompanyId = async () => {
+    const match = companies.find(
+      (c) => c.name.toLowerCase() === formData.company_name.trim().toLowerCase()
+    );
+    if (match) return match.company_id;
+
+    // Company doesn't exist — create it with a placeholder address
+    const res = await fetch(`${API}/company/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        name: formData.company_name.trim(),
+        address: { address: "TBD", state: "N/A", zip_code: 0 },
+      }),
+    });
+    if (!res.ok) return null;
+    const created = await res.json();
+    return created.company_id;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const validationErrors = validate();
-    setErrors(validationErrors);
+    const errs = validate();
+    setErrors(errs);
     setMessage("");
-
-    if (Object.keys(validationErrors).length > 0) return;
+    if (Object.keys(errs).length > 0) return;
 
     setIsSaving(true);
 
-    try {
-      // Simulate backend call
-      await new Promise((res) => setTimeout(res, 1000));
-
-      setMessage("Job saved successfully.");
-
-      // Reset form after save
-      setFormData({
-        jobTitle: "",
-        company: "",
-        status: "Applied",
-        notes: "",
-      });
-    } catch {
-      setMessage("Failed to save job.");
-    } finally {
+    const company_id = await resolveCompanyId();
+    if (!company_id) {
+      setMessage("Failed to resolve company.");
       setIsSaving(false);
+      return;
     }
+
+    const res = await fetch(`${API}/jobs/positions/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        company_id,
+        title: formData.title,
+        listing_date: formData.listing_date,
+        salary: formData.salary ? Number(formData.salary) : null,
+        education_req: formData.education_req || null,
+        experience_req: formData.experience_req || null,
+        description: formData.description || null,
+      }),
+    });
+    setIsSaving(false);
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      setMessage(err.detail || "Failed to create posting.");
+      return;
+    }
+
+    setMessage("Posting created successfully.");
+    setTimeout(() => navigate("/"), 1500);
   };
 
   return (
     <div style={styles.page}>
-      <h1 style={styles.title}>Add Job</h1>
-
+      <h1 style={styles.title}>Add Posting</h1>
       <form onSubmit={handleSubmit} style={styles.card}>
-        {/* Job Title */}
+
+        <label style={styles.label}>Company Name</label>
+        <input
+          type="text"
+          name="company_name"
+          value={formData.company_name}
+          onChange={handleChange}
+          style={styles.input}
+          placeholder="e.g. Acme Corp"
+        />
+        {errors.company_name && <p style={styles.error}>{errors.company_name}</p>}
+
         <label style={styles.label}>Job Title</label>
-        <input
-          type="text"
-          name="jobTitle"
-          value={formData.jobTitle}
-          onChange={handleChange}
-          style={styles.input}
-        />
-        {errors.jobTitle && <p style={styles.error}>{errors.jobTitle}</p>}
+        <input type="text" name="title" value={formData.title} onChange={handleChange} style={styles.input} placeholder="e.g. Software Engineer" />
+        {errors.title && <p style={styles.error}>{errors.title}</p>}
 
-        {/* Company */}
-        <label style={styles.label}>Company</label>
-        <input
-          type="text"
-          name="company"
-          value={formData.company}
-          onChange={handleChange}
-          style={styles.input}
-        />
-        {errors.company && <p style={styles.error}>{errors.company}</p>}
+        <label style={styles.label}>Listing Date</label>
+        <input type="date" name="listing_date" value={formData.listing_date} onChange={handleChange} style={styles.input} />
+        {errors.listing_date && <p style={styles.error}>{errors.listing_date}</p>}
 
-        {/* Status */}
-        <label style={styles.label}>Status</label>
-        <select
-          name="status"
-          value={formData.status}
-          onChange={handleChange}
-          style={styles.input}
-        >
-          <option>Applied</option>
-          <option>Interview</option>
-          <option>Offer</option>
-          <option>Rejected</option>
-        </select>
+        <label style={styles.label}>Salary (optional)</label>
+        <input type="number" name="salary" value={formData.salary} onChange={handleChange} style={styles.input} placeholder="e.g. 80000" />
 
-        {/* Notes */}
-        <label style={styles.label}>Notes</label>
-        <textarea
-          name="notes"
-          value={formData.notes}
-          onChange={handleChange}
-          style={styles.textarea}
-        />
+        <label style={styles.label}>Education Requirement (optional)</label>
+        <input type="text" name="education_req" value={formData.education_req} onChange={handleChange} style={styles.input} placeholder="e.g. Bachelor's in CS" />
 
-        {/* Button */}
+        <label style={styles.label}>Experience Requirement (optional)</label>
+        <input type="text" name="experience_req" value={formData.experience_req} onChange={handleChange} style={styles.input} placeholder="e.g. 2+ years React" />
+
+        <label style={styles.label}>Description (optional)</label>
+        <textarea name="description" value={formData.description} onChange={handleChange} style={styles.textarea} placeholder="Describe the role…" />
+
         <button type="submit" style={styles.button} disabled={isSaving}>
-          {isSaving ? "Saving..." : "Save Job"}
+          {isSaving ? "Saving…" : "Create Posting"}
         </button>
 
-        {/* Message */}
-        {message && <p style={styles.message}>{message}</p>}
+        {message && <p style={{ ...styles.message, color: message.includes("Failed") ? "red" : "green" }}>{message}</p>}
       </form>
     </div>
   );
 }
 
-// Simple styles (same approach as before)
 const styles = {
-  page: {
-    maxWidth: "600px",
-    margin: "0 auto",
-    padding: "32px 20px",
-    fontFamily: "Arial, sans-serif",
-  },
-  title: {
-    fontSize: "28px",
-    marginBottom: "20px",
-  },
-  card: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-    padding: "20px",
-    border: "1px solid #ddd",
-    borderRadius: "12px",
-  },
-  label: {
-    fontWeight: "600",
-  },
-  input: {
-    padding: "10px",
-    borderRadius: "8px",
-    border: "1px solid #ccc",
-  },
-  textarea: {
-    padding: "10px",
-    borderRadius: "8px",
-    border: "1px solid #ccc",
-    minHeight: "80px",
-  },
-  button: {
-    marginTop: "10px",
-    padding: "10px",
-    borderRadius: "8px",
-    border: "none",
-    cursor: "pointer",
-  },
-  error: {
-    color: "red",
-    fontSize: "14px",
-  },
-  message: {
-    color: "green",
-    marginTop: "10px",
-  },
+  page: { maxWidth: "600px", margin: "0 auto", padding: "32px 20px", fontFamily: "Arial, sans-serif" },
+  title: { fontSize: "28px", marginBottom: "20px" },
+  card: { display: "flex", flexDirection: "column", gap: "12px", padding: "20px", border: "1px solid #ddd", borderRadius: "12px" },
+  label: { fontWeight: "600" },
+  input: { padding: "10px", borderRadius: "8px", border: "1px solid #ccc" },
+  textarea: { padding: "10px", borderRadius: "8px", border: "1px solid #ccc", minHeight: "100px" },
+  button: { marginTop: "10px", padding: "10px", borderRadius: "8px", border: "none", cursor: "pointer", backgroundColor: "#4f8ef7", color: "#fff", fontSize: "1rem" },
+  error: { color: "red", fontSize: "14px", margin: 0 },
+  message: { marginTop: "10px" },
 };
 
 export default JobForm;
