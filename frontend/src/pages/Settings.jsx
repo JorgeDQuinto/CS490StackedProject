@@ -20,28 +20,33 @@ function Field({ label, value }) {
   return (
     <div style={styles.field}>
       <span style={styles.fieldLabel}>{label}</span>
-      <span style={styles.fieldValue}>{value || <em style={{ color: "#aaa" }}>Not set</em>}</span>
+      <span style={styles.fieldValue}>
+        {value || <em style={{ color: "#aaa" }}>Not set</em>}
+      </span>
     </div>
   );
 }
 
 function ChangePasswordModal({ onCancel }) {
-  const [current, setCurrent]   = useState("");
-  const [newPw, setNewPw]       = useState("");
-  const [confirm, setConfirm]   = useState("");
-  const [error, setError]       = useState("");
-  const [success, setSuccess]   = useState("");
+  const [current, setCurrent] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const token = localStorage.getItem("token");
 
   const handleSave = async () => {
     setError("");
     setSuccess("");
-    if (!current)              return setError("Current password is required.");
-    if (newPw.length < 6)     return setError("New password must be at least 6 characters.");
-    if (newPw !== confirm)    return setError("Passwords do not match.");
+    if (!current) return setError("Current password is required.");
+    if (newPw.length < 6)
+      return setError("New password must be at least 6 characters.");
+    if (newPw !== confirm) return setError("Passwords do not match.");
 
     // Verify current password by attempting login
-    const meRes = await fetch(`${API}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+    const meRes = await fetch(`${API}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     const me = await meRes.json();
 
     const checkRes = await fetch(`${API}/auth/login`, {
@@ -67,21 +72,45 @@ function ChangePasswordModal({ onCancel }) {
         <h3 style={styles.modalTitle}>Change Password</h3>
         <div style={styles.modalField}>
           <label style={styles.modalLabel}>Current Password</label>
-          <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} style={styles.modalInput} placeholder="••••••••" />
+          <input
+            type="password"
+            value={current}
+            onChange={(e) => setCurrent(e.target.value)}
+            style={styles.modalInput}
+            placeholder="••••••••"
+          />
         </div>
         <div style={styles.modalField}>
           <label style={styles.modalLabel}>New Password</label>
-          <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} style={styles.modalInput} placeholder="••••••••" />
+          <input
+            type="password"
+            value={newPw}
+            onChange={(e) => setNewPw(e.target.value)}
+            style={styles.modalInput}
+            placeholder="••••••••"
+          />
         </div>
         <div style={styles.modalField}>
           <label style={styles.modalLabel}>Confirm New Password</label>
-          <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} style={styles.modalInput} placeholder="••••••••" />
+          <input
+            type="password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            style={styles.modalInput}
+            placeholder="••••••••"
+          />
         </div>
-        {error   && <p style={{ color: "red",    fontSize: "13px" }}>{error}</p>}
-        {success && <p style={{ color: "green",  fontSize: "13px" }}>{success}</p>}
+        {error && <p style={{ color: "red", fontSize: "13px" }}>{error}</p>}
+        {success && <p style={{ color: "green", fontSize: "13px" }}>{success}</p>}
         <div style={styles.modalActions}>
-          <button style={styles.cancelBtn} onClick={onCancel}>Cancel</button>
-          {!success && <button style={styles.saveBtn} onClick={handleSave}>Update Password</button>}
+          <button style={styles.cancelBtn} onClick={onCancel}>
+            Cancel
+          </button>
+          {!success && (
+            <button style={styles.saveBtn} onClick={handleSave}>
+              Update Password
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -125,8 +154,12 @@ function EditModal({ title, fields, onSave, onCancel }) {
         ))}
         {error && <p style={styles.error}>{error}</p>}
         <div style={styles.modalActions}>
-          <button style={styles.cancelBtn} onClick={onCancel}>Cancel</button>
-          <button style={styles.saveBtn} onClick={handleSave}>Save</button>
+          <button style={styles.cancelBtn} onClick={onCancel}>
+            Cancel
+          </button>
+          <button style={styles.saveBtn} onClick={handleSave}>
+            Save
+          </button>
         </div>
       </div>
     </div>
@@ -169,7 +202,9 @@ function Settings() {
 
     fetch(`${API}/profile/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d) setProfile(d); });
+      .then((d) => {
+        if (d) setProfile(d);
+      });
   }, []);
 
   const saveProfile = async (values) => {
@@ -203,19 +238,18 @@ function Settings() {
       {statusMessage && <p style={styles.status}>{statusMessage}</p>}
 
       <div style={styles.formCard}>
-
         {/* Account */}
         <Section title="Account" onEdit={() => setModal("name")}>
           <Field label="First Name" value={profile?.first_name} />
-          <Field label="Last Name"  value={profile?.last_name} />
-          <Field label="Email"      value={email} />
+          <Field label="Last Name" value={profile?.last_name} />
+          <Field label="Email" value={email} />
         </Section>
 
         <hr style={styles.divider} />
 
         {/* Contact */}
         <Section title="Contact" onEdit={() => setModal("contact")}>
-          <Field label="Phone"       value={profile?.phone_number} />
+          <Field label="Phone" value={profile?.phone_number} />
           <Field label="Date of Birth" value={profile?.dob} />
         </Section>
 
@@ -231,22 +265,37 @@ function Settings() {
           <div style={styles.toggleRow}>
             <div>
               <span style={styles.fieldLabel}>Email Notifications</span>
-              <span style={{ ...styles.toggleStatus, color: emailNotifications ? "#16a34a" : "#888" }}>
+              <span
+                style={{
+                  ...styles.toggleStatus,
+                  color: emailNotifications ? "#16a34a" : "#888",
+                }}
+              >
                 {emailNotifications ? "Enabled" : "Disabled"}
               </span>
             </div>
             <button
               type="button"
-              style={{ ...styles.toggle, background: emailNotifications ? "#4f8ef7" : "#ccc" }}
+              style={{
+                ...styles.toggle,
+                background: emailNotifications ? "#4f8ef7" : "#ccc",
+              }}
               onClick={() => setEmailNotifications((v) => !v)}
             >
-              <span style={{ ...styles.toggleKnob, transform: emailNotifications ? "translateX(20px)" : "translateX(0)" }} />
+              <span
+                style={{
+                  ...styles.toggleKnob,
+                  transform: emailNotifications ? "translateX(20px)" : "translateX(0)",
+                }}
+              />
             </button>
           </div>
           <div style={styles.toggleRow}>
             <div>
               <span style={styles.fieldLabel}>Dark Mode</span>
-              <span style={{ ...styles.toggleStatus, color: darkMode ? "#16a34a" : "#888" }}>
+              <span
+                style={{ ...styles.toggleStatus, color: darkMode ? "#16a34a" : "#888" }}
+              >
                 {darkMode ? "Enabled" : "Disabled"}
               </span>
             </div>
@@ -255,7 +304,12 @@ function Settings() {
               style={{ ...styles.toggle, background: darkMode ? "#4f8ef7" : "#ccc" }}
               onClick={() => setDarkMode((v) => !v)}
             >
-              <span style={{ ...styles.toggleKnob, transform: darkMode ? "translateX(20px)" : "translateX(0)" }} />
+              <span
+                style={{
+                  ...styles.toggleKnob,
+                  transform: darkMode ? "translateX(20px)" : "translateX(0)",
+                }}
+              />
             </button>
           </div>
         </div>
@@ -267,24 +321,29 @@ function Settings() {
           <div style={styles.sectionHeader}>
             <h2 style={styles.sectionTitle}>Security</h2>
           </div>
-          <button type="button" style={styles.secondaryButton} onClick={() => setModal("password")}>
+          <button
+            type="button"
+            style={styles.secondaryButton}
+            onClick={() => setModal("password")}
+          >
             Change Password
           </button>
         </div>
-
       </div>
 
-      {modal === "password" && (
-        <ChangePasswordModal onCancel={() => setModal(null)} />
-      )}
+      {modal === "password" && <ChangePasswordModal onCancel={() => setModal(null)} />}
 
       {/* Name edit modal */}
       {modal === "name" && (
         <EditModal
           title="Edit Name"
           fields={[
-            { name: "first_name", label: "First Name", value: profile?.first_name || "" },
-            { name: "last_name",  label: "Last Name",  value: profile?.last_name  || "" },
+            {
+              name: "first_name",
+              label: "First Name",
+              value: profile?.first_name || "",
+            },
+            { name: "last_name", label: "Last Name", value: profile?.last_name || "" },
           ]}
           onSave={saveProfile}
           onCancel={() => setModal(null)}
@@ -296,8 +355,18 @@ function Settings() {
         <EditModal
           title="Edit Contact"
           fields={[
-            { name: "phone_number", label: "Phone",         value: profile?.phone_number || "", placeholder: "555-0100" },
-            { name: "dob",          label: "Date of Birth", value: profile?.dob          || "", type: "date" },
+            {
+              name: "phone_number",
+              label: "Phone",
+              value: profile?.phone_number || "",
+              placeholder: "555-0100",
+            },
+            {
+              name: "dob",
+              label: "Date of Birth",
+              value: profile?.dob || "",
+              type: "date",
+            },
           ]}
           onSave={saveProfile}
           onCancel={() => setModal(null)}
@@ -387,7 +456,12 @@ const styles = {
     border: "1px solid #ccc",
     fontSize: "14px",
   },
-  modalActions: { display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" },
+  modalActions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "10px",
+    marginTop: "8px",
+  },
   cancelBtn: {
     padding: "8px 16px",
     borderRadius: "6px",
@@ -404,10 +478,34 @@ const styles = {
     cursor: "pointer",
   },
   error: { color: "red", fontSize: "13px", margin: 0 },
-  toggleRow: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0" },
+  toggleRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "10px 0",
+  },
   toggleStatus: { fontSize: "13px", marginLeft: "10px" },
-  toggle: { width: "44px", height: "24px", borderRadius: "999px", border: "none", cursor: "pointer", position: "relative", flexShrink: 0, transition: "background 0.2s" },
-  toggleKnob: { position: "absolute", top: "3px", left: "3px", width: "18px", height: "18px", borderRadius: "50%", background: "#fff", transition: "transform 0.2s", display: "block" },
+  toggle: {
+    width: "44px",
+    height: "24px",
+    borderRadius: "999px",
+    border: "none",
+    cursor: "pointer",
+    position: "relative",
+    flexShrink: 0,
+    transition: "background 0.2s",
+  },
+  toggleKnob: {
+    position: "absolute",
+    top: "3px",
+    left: "3px",
+    width: "18px",
+    height: "18px",
+    borderRadius: "50%",
+    background: "#fff",
+    transition: "transform 0.2s",
+    display: "block",
+  },
 };
 
 export default Settings;

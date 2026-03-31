@@ -104,7 +104,6 @@ function JobForm() {
     <div style={styles.page}>
       <h1 style={styles.title}>Add Posting</h1>
       <form onSubmit={handleSubmit} style={styles.card}>
-
         <label style={styles.label}>Company Name</label>
         <input
           type="text"
@@ -117,43 +116,118 @@ function JobForm() {
         {errors.company_name && <p style={styles.error}>{errors.company_name}</p>}
 
         <label style={styles.label}>Job Title</label>
-        <input type="text" name="title" value={formData.title} onChange={handleChange} style={styles.input} placeholder="e.g. Software Engineer" />
+        <input
+          type="text"
+          name="title"
+          value={formData.title}
+          onChange={handleChange}
+          style={styles.input}
+          placeholder="e.g. Software Engineer"
+        />
         {errors.title && <p style={styles.error}>{errors.title}</p>}
 
         <label style={styles.label}>Listing Date</label>
-        <input type="date" name="listing_date" value={formData.listing_date} onChange={handleChange} style={styles.input} />
+        <input
+          type="date"
+          name="listing_date"
+          value={formData.listing_date}
+          onChange={handleChange}
+          style={styles.input}
+        />
         {errors.listing_date && <p style={styles.error}>{errors.listing_date}</p>}
 
         <label style={styles.label}>Salary (optional)</label>
-        <input type="number" name="salary" value={formData.salary} onChange={handleChange} style={styles.input} placeholder="e.g. 80000" />
+        <input
+          type="number"
+          name="salary"
+          value={formData.salary}
+          onChange={handleChange}
+          style={styles.input}
+          placeholder="e.g. 80000"
+        />
 
         <label style={styles.label}>Education Requirement (optional)</label>
-        <input type="text" name="education_req" value={formData.education_req} onChange={handleChange} style={styles.input} placeholder="e.g. Bachelor's in CS" />
+        <input
+          type="text"
+          name="education_req"
+          value={formData.education_req}
+          onChange={handleChange}
+          style={styles.input}
+          placeholder="e.g. Bachelor's in CS"
+        />
 
         <label style={styles.label}>Experience Requirement (optional)</label>
-        <input type="text" name="experience_req" value={formData.experience_req} onChange={handleChange} style={styles.input} placeholder="e.g. 2+ years React" />
+        <input
+          type="text"
+          name="experience_req"
+          value={formData.experience_req}
+          onChange={handleChange}
+          style={styles.input}
+          placeholder="e.g. 2+ years React"
+        />
 
         <label style={styles.label}>Description (optional)</label>
-        <textarea name="description" value={formData.description} onChange={handleChange} style={styles.textarea} placeholder="Describe the role…" />
+        <textarea
+          name="description"
+          value={formData.description}
+          onChange={handleChange}
+          style={styles.textarea}
+          placeholder="Describe the role…"
+        />
 
         <button type="submit" style={styles.button} disabled={isSaving}>
           {isSaving ? "Saving…" : "Create Posting"}
         </button>
 
-        {message && <p style={{ ...styles.message, color: message.includes("Failed") ? "red" : "green" }}>{message}</p>}
+        {message && (
+          <p
+            style={{
+              ...styles.message,
+              color: message.includes("Failed") ? "red" : "green",
+            }}
+          >
+            {message}
+          </p>
+        )}
       </form>
     </div>
   );
 }
 
 const styles = {
-  page: { maxWidth: "600px", margin: "0 auto", padding: "32px 20px", fontFamily: "Arial, sans-serif" },
+  page: {
+    maxWidth: "600px",
+    margin: "0 auto",
+    padding: "32px 20px",
+    fontFamily: "Arial, sans-serif",
+  },
   title: { fontSize: "28px", marginBottom: "20px" },
-  card: { display: "flex", flexDirection: "column", gap: "12px", padding: "20px", border: "1px solid #ddd", borderRadius: "12px" },
+  card: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    padding: "20px",
+    border: "1px solid #ddd",
+    borderRadius: "12px",
+  },
   label: { fontWeight: "600" },
   input: { padding: "10px", borderRadius: "8px", border: "1px solid #ccc" },
-  textarea: { padding: "10px", borderRadius: "8px", border: "1px solid #ccc", minHeight: "100px" },
-  button: { marginTop: "10px", padding: "10px", borderRadius: "8px", border: "none", cursor: "pointer", backgroundColor: "#4f8ef7", color: "#fff", fontSize: "1rem" },
+  textarea: {
+    padding: "10px",
+    borderRadius: "8px",
+    border: "1px solid #ccc",
+    minHeight: "100px",
+  },
+  button: {
+    marginTop: "10px",
+    padding: "10px",
+    borderRadius: "8px",
+    border: "none",
+    cursor: "pointer",
+    backgroundColor: "#4f8ef7",
+    color: "#fff",
+    fontSize: "1rem",
+  },
   error: { color: "red", fontSize: "14px", margin: 0 },
   message: { marginTop: "10px" },
 };

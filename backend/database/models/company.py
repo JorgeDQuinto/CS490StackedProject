@@ -65,4 +65,5 @@ def get_company(session: Session, company_id: int) -> "Company | None":
 def get_all_companies(session: Session) -> list["Company"]:
     """Return all companies."""
     from sqlalchemy import select
+
     return session.execute(select(Company)).scalars().all()

@@ -77,6 +77,7 @@ def get_position(session: Session, position_id: int) -> "Position | None":
 def get_all_positions(session: Session) -> list["Position"]:
     """Return all positions."""
     from sqlalchemy import select
+
     return session.execute(select(Position)).scalars().all()
 
 

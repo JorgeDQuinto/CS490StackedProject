@@ -18,15 +18,21 @@ _BACKEND_DIR = os.path.dirname(_ROUTERS_DIR)
 UPLOAD_BASE = os.path.join(_BACKEND_DIR, "uploads")
 
 
-def _build_upload_path(base: str, first_name: str, last_name: str, user_id: int, filename: str) -> str:
+def _build_upload_path(
+    base: str, first_name: str, last_name: str, user_id: int, filename: str
+) -> str:
     """Return the full filesystem path for an uploaded file."""
     last_initial = last_name[0].upper()
     first_initial = first_name[0].upper()
     full_name = f"{first_name} {last_name}"
-    return os.path.join(base, last_initial, first_initial, full_name, str(user_id), filename)
+    return os.path.join(
+        base, last_initial, first_initial, full_name, str(user_id), filename
+    )
 
 
-@router.post("/upload", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/upload", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED
+)
 async def upload_document(
     file: UploadFile = File(...),
     document_type: str = Form(...),
@@ -66,7 +72,9 @@ def read_my_documents(
 
 @router.post("/", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
 def create_document_endpoint(body: DocumentCreate, session: Session = Depends(get_db)):
-    return create_document(session, body.user_id, body.document_type, body.document_location)
+    return create_document(
+        session, body.user_id, body.document_type, body.document_location
+    )
 
 
 @router.get("/user/{user_id}", response_model=list[DocumentResponse])

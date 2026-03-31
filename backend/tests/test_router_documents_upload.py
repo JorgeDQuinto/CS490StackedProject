@@ -13,11 +13,7 @@ import io
 import os
 from datetime import date
 
-import pytest
-
 from database.models.profile import create_profile
-from database.models.user import create_user
-from routers.documents import UPLOAD_BASE
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -185,7 +181,9 @@ class TestUploadSuccess:
         saved_path = res.json()["document_location"]
         # monkeypatch replaced UPLOAD_BASE, so rebuild the path
         saved_path = saved_path.replace(
-            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads"),
+            os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads"
+            ),
             str(tmp_path),
         )
         with open(saved_path, "rb") as f:
@@ -224,8 +222,14 @@ class TestGetMyDocuments:
         _upload(client, headers_a, filename="a.pdf")
 
         # User B registers and has no documents
-        client.post(REGISTER_URL, json={"email": "user_b_upload@example.com", "password": _PASSWORD})
-        res_b = client.post(LOGIN_URL, data={"username": "user_b_upload@example.com", "password": _PASSWORD})
+        client.post(
+            REGISTER_URL,
+            json={"email": "user_b_upload@example.com", "password": _PASSWORD},
+        )
+        res_b = client.post(
+            LOGIN_URL,
+            data={"username": "user_b_upload@example.com", "password": _PASSWORD},
+        )
         headers_b = {"Authorization": f"Bearer {res_b.json()['access_token']}"}
 
         docs_b = client.get("/documents/me", headers=headers_b).json()

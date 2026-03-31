@@ -125,9 +125,7 @@ def delete_applied_job(session: Session, job_id: int) -> bool:
     job = get_applied_jobs(session, job_id)
     if job is None:
         return False
-    session.execute(
-        JobActivity.__table__.delete().where(JobActivity.job_id == job_id)
-    )
+    session.execute(JobActivity.__table__.delete().where(JobActivity.job_id == job_id))
     session.delete(job)
     session.commit()
     return True

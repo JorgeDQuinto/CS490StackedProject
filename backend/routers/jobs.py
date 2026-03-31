@@ -37,17 +37,19 @@ def read_all_positions(session: Session = Depends(get_db)):
     positions = get_all_positions(session)
     result = []
     for p in positions:
-        result.append(PositionWithCompanyResponse(
-            position_id=p.position_id,
-            company_id=p.company_id,
-            company_name=p.company.name if p.company else "Unknown",
-            title=p.title,
-            listing_date=p.listing_date,
-            salary=p.salary,
-            education_req=p.education_req,
-            experience_req=p.experience_req,
-            description=p.description,
-        ))
+        result.append(
+            PositionWithCompanyResponse(
+                position_id=p.position_id,
+                company_id=p.company_id,
+                company_name=p.company.name if p.company else "Unknown",
+                title=p.title,
+                listing_date=p.listing_date,
+                salary=p.salary,
+                education_req=p.education_req,
+                experience_req=p.experience_req,
+                description=p.description,
+            )
+        )
     return result
 
 
@@ -152,9 +154,13 @@ def delete_application(
 ):
     job = get_applied_jobs(session, job_id)
     if not job:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Application not found"
+        )
     if job.user_id != current_user.user_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
+        )
     # Record withdrawal in history before deleting (delete_applied_job will
     # then purge job_activity rows to satisfy the FK constraint)
     create_job_activity(session, job_id, "Withdrawn")
