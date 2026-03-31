@@ -1,67 +1,121 @@
-import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import "./Dashboard.css";
 
-const sampleJobs = [
-  {
-    id: 1,
-    company: "Google",
-    title: "Software Engineer",
-    type: "Full-time",
-    salary: "$120k - $180k",
-    location: "Mountain View, CA",
-    date: "2026-03-25",
-    description:
-      "We are looking for a talented Software Engineer to join our team and help build the next generation of cloud infrastructure. You will work alongside world-class engineers to design, develop, and maintain scalable systems that serve billions of users.",
-    requirements:
-      "3+ years of software development experience. Proficiency in one or more of: Java, Python, Go, C++. Experience with distributed systems and cloud computing.",
-    qualifications:
-      "BS in Computer Science or related field. Strong problem-solving and analytical skills. Excellent communication and collaboration abilities.",
-  },
-  {
-    id: 2,
-    company: "Amazon",
-    title: "Frontend Developer",
-    type: "Full-time",
-    salary: "$110k - $160k",
-    location: "Seattle, WA",
-    date: "2026-03-22",
-    description:
-      "Join Amazon's retail team to build customer-facing web applications used by millions. You'll develop responsive, performant UIs and collaborate with designers and backend engineers to deliver seamless shopping experiences.",
-    requirements:
-      "2+ years of frontend development experience. Strong skills in React, JavaScript/TypeScript, HTML, and CSS. Familiarity with RESTful APIs.",
-    qualifications:
-      "BS in Computer Science or equivalent experience. Portfolio of web projects. Experience with testing frameworks.",
-  },
-  {
-    id: 3,
-    company: "Spotify",
-    title: "Data Analyst Intern",
-    type: "Internship",
-    salary: "$35/hr",
-    location: "New York, NY",
-    date: "2026-03-20",
-    description:
-      "Spotify is seeking a Data Analyst Intern to support our content and marketplace teams. You will analyze user listening patterns, build dashboards, and provide insights that drive product decisions.",
-    requirements:
-      "Currently pursuing a degree in Data Science, Statistics, or related field. Experience with SQL and Python. Familiarity with data visualization tools.",
-    qualifications:
-      "Strong analytical mindset. Interest in music and media technology. Ability to communicate findings to non-technical stakeholders.",
-  },
-];
+const API = "http://localhost:8000";
+
+function ApplyModal({ job, onClose, onConfirm }) {
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleConfirm = async () => {
+    if (submitting) return;
+    setError("");
+    setSubmitting(true);
+    const err = await onConfirm(job.position_id);
+    setSubmitting(false);
+    if (err) setError(err);
+  };
+
+  return (
+    <div className="apply-overlay">
+      <div className="apply-modal">
+        <h3 className="apply-modal-title">Apply for {job.title}</h3>
+        <p className="apply-modal-company">{job.company_name}</p>
+        <p className="apply-modal-company">Are you sure you want to apply?</p>
+        {error && <p className="apply-modal-error">{error}</p>}
+        <div className="apply-modal-actions">
+          <button className="apply-modal-cancel" onClick={onClose} disabled={submitting}>Cancel</button>
+          <button className="apply-modal-confirm" onClick={handleConfirm} disabled={submitting}>
+            {submitting ? "Applying…" : "Confirm Apply"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function Dashboard() {
-  const [selectedJob, setSelectedJob] = useState(sampleJobs[0]);
+  const [jobs, setJobs] = useState([]);
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [applications, setApplications] = useState([]);
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [applyTarget, setApplyTarget] = useState(null);
+  const [applySuccess, setApplySuccess] = useState("");
   const jobBoardRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    const fetchAll = async () => {
+      // Positions are public — no auth needed
+      const posRes = await fetch(`${API}/jobs/positions/`);
+      if (posRes.ok) {
+        const data = await posRes.json();
+        setJobs(data);
+        if (data.length > 0) setSelectedJob(data[0]);
+      }
+
+      // Applications and documents require auth
+      if (token) {
+        const [appRes, docRes] = await Promise.all([
+          fetch(`${API}/jobs/dashboard`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API}/documents/me`,   { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        if (appRes.ok) setApplications(await appRes.json());
+        if (docRes.ok) setDocuments(await docRes.json());
+      }
+
+      setLoading(false);
+    };
+    fetchAll();
+  }, [location.pathname]);
+
+  const handleApply = async (position_id) => {
+    const meRes = await fetch(`${API}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!meRes.ok) return "You must be signed in to apply.";
+    const me = await meRes.json();
+
+    const res = await fetch(`${API}/jobs/applications/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ user_id: me.user_id, position_id, years_of_experience: 0 }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return err.detail || "Application failed.";
+    }
+
+    setApplyTarget(null);
+    setApplySuccess(`Applied to ${applyTarget?.title}!`);
+    setTimeout(() => setApplySuccess(""), 3000);
+    // Refresh applications preview
+    const appRes = await fetch(`${API}/jobs/dashboard`, { headers: { Authorization: `Bearer ${token}` } });
+    if (appRes.ok) setApplications(await appRes.json());
+    return null;
+  };
 
   const scrollToJobBoard = () => {
     jobBoardRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  if (loading) return <div className="dashboard"><p style={{ color: "#888", padding: "2rem" }}>Loading…</p></div>;
+
+
   return (
     <div className="dashboard">
+      {applyTarget && (
+        <ApplyModal
+          job={applyTarget}
+          onClose={() => setApplyTarget(null)}
+          onConfirm={handleApply}
+        />
+      )}
       <h1 className="dashboard-welcome">Welcome</h1>
+      {applySuccess && <p className="apply-success-msg">{applySuccess}</p>}
 
       <div className="dashboard-preview-grid">
         <div className="preview-card preview-card-jobs">
@@ -72,12 +126,16 @@ function Dashboard() {
             </button>
           </div>
           <div className="preview-card-body">
-            {sampleJobs.slice(0, 2).map((job) => (
-              <div key={job.id} className="preview-job-item">
-                <span className="preview-job-company">{job.company}</span>
-                <span className="preview-job-title">{job.title}</span>
-              </div>
-            ))}
+            {jobs.length === 0 ? (
+              <p className="preview-placeholder">No job listings yet.</p>
+            ) : (
+              jobs.slice(0, 2).map((job) => (
+                <div key={job.position_id} className="preview-job-item">
+                  <span className="preview-job-company">{job.company_name}</span>
+                  <span className="preview-job-title">{job.title}</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -89,7 +147,16 @@ function Dashboard() {
             </button>
           </div>
           <div className="preview-card-body">
-            <p className="preview-placeholder">No applications yet</p>
+            {applications.length === 0 ? (
+              <p className="preview-placeholder">No applications yet.</p>
+            ) : (
+              applications.slice(0, 2).map((app) => (
+                <div key={app.job_id} className="preview-job-item">
+                  <span className="preview-job-company">{app.application_status}</span>
+                  <span className="preview-job-title">Application #{app.job_id}</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -101,57 +168,80 @@ function Dashboard() {
             </button>
           </div>
           <div className="preview-card-body">
-            <p className="preview-placeholder">No documents yet</p>
+            {documents.length === 0 ? (
+              <p className="preview-placeholder">No documents yet.</p>
+            ) : (
+              documents.slice(0, 2).map((doc) => (
+                <div key={doc.doc_id} className="preview-job-item">
+                  <span className="preview-job-company">{doc.document_type}</span>
+                  <span className="preview-job-title">{doc.document_location.split("/").pop()}</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
 
+      {/* Full job board */}
       <div className="job-board" ref={jobBoardRef}>
-        <div className="job-board-list">
-          {sampleJobs.map((job) => (
-            <div
-              key={job.id}
-              className={`job-card ${selectedJob.id === job.id ? "job-card-selected" : ""}`}
-              onClick={() => setSelectedJob(job)}
-            >
-              <span className="job-card-company">{job.company}</span>
-              <h3 className="job-card-title">{job.title}</h3>
-              <span className="job-card-meta">
-                {job.type} &middot; {job.salary}
-              </span>
-              <span className="job-card-meta">
-                {job.location} &middot; {job.date}
-              </span>
+        {jobs.length === 0 ? (
+          <p style={{ color: "#888", padding: "1rem" }}>No job listings available.</p>
+        ) : (
+          <>
+            <div className="job-board-list">
+              {jobs.map((job) => (
+                <div
+                  key={job.position_id}
+                  className={`job-card ${selectedJob?.position_id === job.position_id ? "job-card-selected" : ""}`}
+                  onClick={() => setSelectedJob(job)}
+                >
+                  <span className="job-card-company">{job.company_name}</span>
+                  <h3 className="job-card-title">{job.title}</h3>
+                  <span className="job-card-meta">
+                    {job.salary ? `$${Number(job.salary).toLocaleString()}` : "Salary not listed"}
+                  </span>
+                  <span className="job-card-meta">{job.listing_date}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        <div className="job-board-detail">
-          <h2 className="job-detail-title">
-            {selectedJob.title} @ {selectedJob.company}
-          </h2>
-          <p className="job-detail-meta">
-            {selectedJob.type} &middot; {selectedJob.salary}
-          </p>
-          <p className="job-detail-meta">
-            {selectedJob.location} &middot; {selectedJob.date}
-          </p>
+            {selectedJob && (
+              <div className="job-board-detail">
+                <h2 className="job-detail-title">
+                  {selectedJob.title} @ {selectedJob.company_name}
+                </h2>
+                <p className="job-detail-meta">
+                  {selectedJob.salary ? `$${Number(selectedJob.salary).toLocaleString()}` : "Salary not listed"}
+                </p>
+                <p className="job-detail-meta">Listed: {selectedJob.listing_date}</p>
 
-          <div className="job-detail-section">
-            <h3>Job Description</h3>
-            <p>{selectedJob.description}</p>
-          </div>
-
-          <div className="job-detail-section">
-            <h3>Requirements</h3>
-            <p>{selectedJob.requirements}</p>
-          </div>
-
-          <div className="job-detail-section">
-            <h3>Qualifications</h3>
-            <p>{selectedJob.qualifications}</p>
-          </div>
-        </div>
+                {selectedJob.description && (
+                  <div className="job-detail-section">
+                    <h3>Job Description</h3>
+                    <p>{selectedJob.description}</p>
+                  </div>
+                )}
+                {selectedJob.education_req && (
+                  <div className="job-detail-section">
+                    <h3>Education</h3>
+                    <p>{selectedJob.education_req}</p>
+                  </div>
+                )}
+                {selectedJob.experience_req && (
+                  <div className="job-detail-section">
+                    <h3>Experience</h3>
+                    <p>{selectedJob.experience_req}</p>
+                  </div>
+                )}
+                {token && (
+                  applications.some(a => a.position_id === selectedJob.position_id && a.application_status !== "Withdrawn")
+                    ? <button className="apply-btn apply-btn-applied" disabled>Already Applied</button>
+                    : <button className="apply-btn" onClick={() => setApplyTarget(selectedJob)}>Apply Now</button>
+                )}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

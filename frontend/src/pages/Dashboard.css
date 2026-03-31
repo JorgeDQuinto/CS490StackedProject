@@ -8,7 +8,7 @@
   font-size: 2.5rem;
   font-weight: 300;
   margin-bottom: 2rem;
-  color: #ffffff;
+  color: var(--text-strong);
 }
 
 /* ---- Preview Cards Grid ---- */
@@ -21,7 +21,7 @@
 }
 
 .preview-card {
-  background-color: #2a2a3e;
+  background-color: var(--surface-3);
   border-radius: 12px;
   padding: 1.5rem;
   display: flex;
@@ -42,13 +42,13 @@
 .preview-card-header h2 {
   font-size: 1.3rem;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--text-strong);
 }
 
 .view-more-btn {
   background: none;
   border: none;
-  color: #a0a0b8;
+  color: var(--text-muted);
   cursor: pointer;
   font-size: 0.9rem;
   padding: 0.25rem 0.5rem;
@@ -57,7 +57,7 @@
 }
 
 .view-more-btn:hover {
-  color: #ffffff;
+  color: var(--text-strong);
 }
 
 .preview-card-body {
@@ -70,24 +70,24 @@
 .preview-job-item {
   display: flex;
   flex-direction: column;
-  background-color: #1e1e32;
+  background-color: var(--surface-2);
   padding: 0.75rem 1rem;
   border-radius: 8px;
 }
 
 .preview-job-company {
   font-size: 0.8rem;
-  color: #a0a0b8;
+  color: var(--text-muted);
 }
 
 .preview-job-title {
   font-size: 1rem;
   font-weight: 600;
-  color: #e0e0e0;
+  color: var(--text);
 }
 
 .preview-placeholder {
-  color: #666;
+  color: var(--text-muted);
   font-style: italic;
 }
 
@@ -96,7 +96,7 @@
   display: grid;
   grid-template-columns: 1fr 2fr;
   gap: 1.5rem;
-  background-color: #1e1e32;
+  background-color: var(--surface-2);
   border-radius: 12px;
   padding: 1.5rem;
   min-height: 600px;
@@ -111,8 +111,8 @@
 }
 
 .job-card {
-  background-color: #ffffff;
-  color: #1a1a2e;
+  background-color: var(--surface);
+  color: var(--text);
   padding: 1rem;
   border-radius: 8px;
   cursor: pointer;
@@ -130,7 +130,7 @@
 
 .job-card-company {
   font-size: 0.8rem;
-  color: #666;
+  color: var(--text-muted);
   display: block;
 }
 
@@ -142,13 +142,13 @@
 
 .job-card-meta {
   font-size: 0.8rem;
-  color: #888;
+  color: var(--text-muted);
   display: block;
 }
 
 .job-board-detail {
-  background-color: #ffffff;
-  color: #1a1a2e;
+  background-color: var(--surface);
+  color: var(--text);
   border-radius: 8px;
   padding: 2rem;
   overflow-y: auto;
@@ -163,7 +163,7 @@
 
 .job-detail-meta {
   font-size: 0.9rem;
-  color: #666;
+  color: var(--text-muted);
   margin-bottom: 0.25rem;
 }
 
@@ -180,5 +180,119 @@
 .job-detail-section p {
   font-size: 0.95rem;
   line-height: 1.6;
-  color: #333;
+  color: var(--text-muted);
+}
+
+.apply-btn {
+  margin-top: 1.5rem;
+  padding: 0.75rem 2rem;
+  background-color: #4f8ef7;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  width: 100%;
+}
+
+.apply-btn:hover:not(:disabled) {
+  background-color: #3a7be0;
+}
+
+.apply-btn-applied {
+  background-color: var(--surface-3);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  border: 1px solid var(--border);
+}
+
+.apply-success-msg {
+  text-align: center;
+  color: #4caf50;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+}
+
+/* Apply modal */
+.apply-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.apply-modal {
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.apply-modal-title {
+  color: var(--text-strong);
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.apply-modal-company {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.apply-modal-label {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.apply-modal-input {
+  padding: 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.apply-modal-error {
+  color: #ef4444;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.apply-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.apply-modal-cancel {
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.apply-modal-confirm {
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  border: none;
+  background: #4f8ef7;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.apply-modal-confirm:hover {
+  background: #3a7be0;
 }

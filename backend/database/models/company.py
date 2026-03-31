@@ -60,3 +60,9 @@ def create_company(
 def get_company(session: Session, company_id: int) -> "Company | None":
     """Return Company object by primary key, or None if not found."""
     return session.get(Company, company_id)
+
+
+def get_all_companies(session: Session) -> list["Company"]:
+    """Return all companies."""
+    from sqlalchemy import select
+    return session.execute(select(Company)).scalars().all()

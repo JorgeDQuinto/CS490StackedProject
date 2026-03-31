@@ -187,6 +187,20 @@ class PositionResponse(BaseModel):
     description: str | None
 
 
+class PositionWithCompanyResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    position_id: int
+    company_id: int
+    company_name: str
+    title: str
+    listing_date: date
+    salary: Decimal | None
+    education_req: str | None
+    experience_req: str | None
+    description: str | None
+
+
 # --------------------------------------------------------------------------- #
 #  Applied Jobs                                                                 #
 # --------------------------------------------------------------------------- #
@@ -195,7 +209,7 @@ class PositionResponse(BaseModel):
 class ApplicationCreate(BaseModel):
     user_id: int
     position_id: int
-    years_of_experience: int
+    years_of_experience: int = 0
 
 
 class ApplicationUpdate(BaseModel):

@@ -6,12 +6,13 @@ from database.auth import get_current_user
 from database.models.applied_jobs import (
     PIPELINE_STAGES,
     create_applied_jobs,
+    delete_applied_job,
     get_all_applied_jobs,
     get_applied_jobs,
     update_applied_job,
 )
 from database.models.job_activity import create_job_activity, get_job_activities
-from database.models.position import create_position, get_position
+from database.models.position import create_position, get_all_positions, get_position
 from database.models.user import User
 from schemas import (
     ApplicationCreate,
@@ -20,6 +21,7 @@ from schemas import (
     JobActivityResponse,
     PositionCreate,
     PositionResponse,
+    PositionWithCompanyResponse,
 )
 
 router = APIRouter()
@@ -28,6 +30,25 @@ router = APIRouter()
 # --------------------------------------------------------------------------- #
 #  Positions                                                                    #
 # --------------------------------------------------------------------------- #
+
+
+@router.get("/positions/", response_model=list[PositionWithCompanyResponse])
+def read_all_positions(session: Session = Depends(get_db)):
+    positions = get_all_positions(session)
+    result = []
+    for p in positions:
+        result.append(PositionWithCompanyResponse(
+            position_id=p.position_id,
+            company_id=p.company_id,
+            company_name=p.company.name if p.company else "Unknown",
+            title=p.title,
+            listing_date=p.listing_date,
+            salary=p.salary,
+            education_req=p.education_req,
+            experience_req=p.experience_req,
+            description=p.description,
+        ))
+    return result
 
 
 @router.post(
@@ -121,6 +142,23 @@ def update_application(
         years_of_experience=body.years_of_experience,
     )
     return updated
+
+
+@router.delete("/applications/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_application(
+    job_id: int,
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    job = get_applied_jobs(session, job_id)
+    if not job:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+    if job.user_id != current_user.user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+    # Record withdrawal in history before deleting (delete_applied_job will
+    # then purge job_activity rows to satisfy the FK constraint)
+    create_job_activity(session, job_id, "Withdrawn")
+    delete_applied_job(session, job_id)
 
 
 @router.get("/applications/{job_id}/activity", response_model=list[JobActivityResponse])
