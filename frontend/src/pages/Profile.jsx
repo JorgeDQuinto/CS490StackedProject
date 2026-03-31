@@ -66,7 +66,7 @@ function Profile() {
   const [profile, setProfile] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null); // null | "info" | "about"
+  const [modal, setModal] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
   const token = localStorage.getItem("token");
 
@@ -89,7 +89,6 @@ function Profile() {
   const saveProfile = async (values) => {
     let res;
     if (!profile) {
-      // No profile yet — create one
       res = await fetch(`${API}/profile/`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -151,7 +150,6 @@ function Profile() {
 
       {statusMessage && <p style={styles.status}>{statusMessage}</p>}
 
-      {/* Completion */}
       <div style={styles.card}>
         <h2 style={styles.cardTitle}>Profile Completion</h2>
         <p style={styles.percentageText}>{completionPct}% complete</p>
@@ -161,7 +159,6 @@ function Profile() {
         <p style={styles.helperText}>{completedCount} of {completionFields.length} items complete</p>
       </div>
 
-      {/* Summary */}
       <div style={styles.card}>
         <div style={styles.cardHeader}>
           <h2 style={styles.cardTitle}>Profile Summary</h2>
@@ -177,7 +174,6 @@ function Profile() {
         </div>
       </div>
 
-      {/* About / Bio */}
       <div style={styles.card}>
         <div style={styles.cardHeader}>
           <h2 style={styles.cardTitle}>About</h2>
@@ -189,7 +185,6 @@ function Profile() {
         }
       </div>
 
-      {/* Missing fields */}
       {missingFields.length > 0 && (
         <div style={styles.card}>
           <h2 style={styles.cardTitle}>Missing Information</h2>
@@ -205,7 +200,6 @@ function Profile() {
         </div>
       )}
 
-      {/* Edit info modal */}
       {modal === "info" && (
         <EditModal
           title="Edit Profile Info"
@@ -220,7 +214,6 @@ function Profile() {
         />
       )}
 
-      {/* Edit about modal */}
       {modal === "about" && (
         <EditModal
           title="Edit About"
@@ -245,35 +238,34 @@ function InfoRow({ label, value }) {
 }
 
 const styles = {
-  page:           { maxWidth: "900px", margin: "0 auto", padding: "32px 20px", fontFamily: "Arial, sans-serif" },
-  title:          { fontSize: "32px", marginBottom: "8px" },
-  subtitle:       { color: "#555", marginBottom: "24px" },
-  status:         { color: "green", fontSize: "14px", marginBottom: "12px" },
-  card:           { backgroundColor: "#fff", border: "1px solid #ddd", borderRadius: "12px", padding: "24px", marginBottom: "20px" },
-  cardHeader:     { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" },
-  cardTitle:      { fontSize: "22px", margin: 0 },
-  editBtn:        { padding: "4px 14px", border: "1px solid #ccc", borderRadius: "6px", background: "none", cursor: "pointer", fontSize: "14px" },
-  percentageText: { fontSize: "24px", fontWeight: "700" },
-  progressBar:    { width: "100%", height: "14px", backgroundColor: "#e5e7eb", borderRadius: "999px", overflow: "hidden", margin: "10px 0" },
-  progressFill:   { height: "100%", backgroundColor: "#22c55e", transition: "width 0.3s ease" },
-  helperText:     { fontSize: "14px", color: "#555" },
-  summaryGrid:    { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" },
-  summaryLabel:   { fontSize: "13px", color: "#666", margin: 0 },
-  summaryValue:   { fontSize: "15px", fontWeight: "600", wordBreak: "break-word", margin: "4px 0 0" },
-  summaryText:    { fontSize: "15px", color: "#333", lineHeight: "1.6" },
-  missingList:    { paddingLeft: "20px" },
-  missingItem:    { marginBottom: "8px" },
-  // Modal
-  overlay:        { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 },
-  modal:          { background: "#fff", borderRadius: "12px", padding: "28px", width: "100%", maxWidth: "400px", display: "flex", flexDirection: "column", gap: "12px" },
-  modalTitle:     { margin: 0, fontSize: "18px" },
-  modalField:     { display: "flex", flexDirection: "column", gap: "4px" },
-  modalLabel:     { fontSize: "14px", fontWeight: "600" },
-  modalInput:     { padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc", fontSize: "14px" },
-  modalActions:   { display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" },
-  cancelBtn:      { padding: "8px 16px", borderRadius: "6px", border: "1px solid #ccc", background: "none", cursor: "pointer" },
-  saveBtn:        { padding: "8px 16px", borderRadius: "6px", border: "none", background: "#4f8ef7", color: "#fff", cursor: "pointer" },
-  error:          { color: "red", fontSize: "13px", margin: 0 },
+  page: { maxWidth: "900px", margin: "0 auto", padding: "32px 20px", fontFamily: "Arial" },
+  title: { fontSize: "32px" },
+  subtitle: { marginBottom: "20px" },
+  status: { color: "green", marginBottom: "10px" },
+  card: { background: "#fff", padding: "20px", borderRadius: "10px", marginBottom: "20px" },
+  cardHeader: { display: "flex", justifyContent: "space-between" },
+  cardTitle: { fontSize: "20px" },
+  editBtn: { cursor: "pointer" },
+  percentageText: { fontSize: "20px", fontWeight: "bold" },
+  progressBar: { background: "#eee", height: "10px", borderRadius: "5px" },
+  progressFill: { background: "green", height: "100%" },
+  helperText: { fontSize: "14px" },
+  summaryGrid: { display: "grid", gap: "10px" },
+  summaryLabel: { color: "#666" },
+  summaryValue: { fontWeight: "600" },
+  summaryText: { lineHeight: "1.5" },
+  missingList: { paddingLeft: "20px" },
+  missingItem: { marginBottom: "8px" },
+  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", justifyContent: "center", alignItems: "center" },
+  modal: { background: "#fff", padding: "20px", borderRadius: "10px" },
+  modalTitle: { fontSize: "18px" },
+  modalField: { marginBottom: "10px" },
+  modalLabel: { fontSize: "14px" },
+  modalInput: { width: "100%", padding: "8px" },
+  modalActions: { display: "flex", justifyContent: "flex-end", gap: "10px" },
+  cancelBtn: { cursor: "pointer" },
+  saveBtn: { cursor: "pointer", background: "#4f8ef7", color: "#fff" },
+  error: { color: "red" }
 };
 
 export default Profile;
