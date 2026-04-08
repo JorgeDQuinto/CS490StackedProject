@@ -12,7 +12,6 @@ from database.models.skills import (
 )
 from database.models.user import create_user
 
-
 # ---------------------------------------------------------------------------
 # TestCreateSkill
 # ---------------------------------------------------------------------------

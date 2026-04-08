@@ -20,7 +20,6 @@ from database.models.interview import (
 from database.models.position import create_position
 from database.models.user import create_user
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

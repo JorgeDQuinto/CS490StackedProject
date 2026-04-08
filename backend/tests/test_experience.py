@@ -14,7 +14,6 @@ from database.models.experience import (
 )
 from database.models.user import create_user
 
-
 # ---------------------------------------------------------------------------
 # TestCreateExperience
 # ---------------------------------------------------------------------------

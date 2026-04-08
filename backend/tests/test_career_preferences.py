@@ -13,7 +13,6 @@ from database.models.career_preferences import (
 )
 from database.models.user import create_user
 
-
 # ---------------------------------------------------------------------------
 # TestCreateCareerPreferences
 # ---------------------------------------------------------------------------
@@ -103,6 +102,7 @@ class TestUpdateCareerPreferences:
         assert result.work_mode == "Hybrid"
         # Should still be one record, not two
         from sqlalchemy import select
+
         from database.models.career_preferences import CareerPreferences
         count = session.execute(
             select(CareerPreferences).where(CareerPreferences.user_id == user.user_id)
