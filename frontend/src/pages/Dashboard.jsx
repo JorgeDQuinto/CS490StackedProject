@@ -150,10 +150,7 @@ function Dashboard() {
         <div className="preview-card preview-card-jobs">
           <div className="preview-card-header">
             <h2>Jobs for You</h2>
-            <button
-              className="view-more-btn"
-              onClick={scrollToJobBoard}
-            >
+            <button className="view-more-btn" onClick={scrollToJobBoard}>
               View More →
             </button>
           </div>
@@ -163,9 +160,7 @@ function Dashboard() {
             ) : (
               jobs.slice(0, 2).map((job) => (
                 <div key={job.position_id} className="preview-job-item">
-                  <span className="preview-job-company">
-                    {job.company_name}
-                  </span>
+                  <span className="preview-job-company">{job.company_name}</span>
                   <span className="preview-job-title">{job.title}</span>
                 </div>
               ))
@@ -176,10 +171,7 @@ function Dashboard() {
         <div className="preview-card preview-card-apps">
           <div className="preview-card-header">
             <h2>Current Apps</h2>
-            <button
-              className="view-more-btn"
-              onClick={() => navigate("/applications")}
-            >
+            <button className="view-more-btn" onClick={() => navigate("/applications")}>
               View More →
             </button>
           </div>
@@ -189,12 +181,8 @@ function Dashboard() {
             ) : (
               applications.slice(0, 2).map((app) => (
                 <div key={app.job_id} className="preview-job-item">
-                  <span className="preview-job-company">
-                    {app.application_status}
-                  </span>
-                  <span className="preview-job-title">
-                    Application #{app.job_id}
-                  </span>
+                  <span className="preview-job-company">{app.application_status}</span>
+                  <span className="preview-job-title">Application #{app.job_id}</span>
                 </div>
               ))
             )}
@@ -204,10 +192,7 @@ function Dashboard() {
         <div className="preview-card preview-card-docs">
           <div className="preview-card-header">
             <h2>Documents</h2>
-            <button
-              className="view-more-btn"
-              onClick={() => navigate("/documents")}
-            >
+            <button className="view-more-btn" onClick={() => navigate("/documents")}>
               View More →
             </button>
           </div>
@@ -217,9 +202,7 @@ function Dashboard() {
             ) : (
               documents.slice(0, 2).map((doc) => (
                 <div key={doc.doc_id} className="preview-job-item">
-                  <span className="preview-job-company">
-                    {doc.document_type}
-                  </span>
+                  <span className="preview-job-company">{doc.document_type}</span>
                   <span className="preview-job-title">
                     {doc.document_location.split("/").pop()}
                   </span>
@@ -233,9 +216,7 @@ function Dashboard() {
       {/* Full job board */}
       <div className="job-board" ref={jobBoardRef}>
         {jobs.length === 0 ? (
-          <p style={{ color: "#888", padding: "1rem" }}>
-            No job listings available.
-          </p>
+          <p style={{ color: "#888", padding: "1rem" }}>No job listings available.</p>
         ) : (
           <>
             <div className="job-board-list">
@@ -249,18 +230,14 @@ function Dashboard() {
                   }`}
                   onClick={() => setSelectedJob(job)}
                 >
-                  <span className="job-card-company">
-                    {job.company_name}
-                  </span>
+                  <span className="job-card-company">{job.company_name}</span>
                   <h3 className="job-card-title">{job.title}</h3>
                   <span className="job-card-meta">
                     {job.salary
                       ? `$${Number(job.salary).toLocaleString()}`
                       : "Salary not listed"}
                   </span>
-                  <span className="job-card-meta">
-                    {job.listing_date}
-                  </span>
+                  <span className="job-card-meta">{job.listing_date}</span>
                 </div>
               ))}
             </div>
@@ -275,9 +252,7 @@ function Dashboard() {
                     ? `$${Number(selectedJob.salary).toLocaleString()}`
                     : "Salary not listed"}
                 </p>
-                <p className="job-detail-meta">
-                  Listed: {selectedJob.listing_date}
-                </p>
+                <p className="job-detail-meta">Listed: {selectedJob.listing_date}</p>
 
                 {selectedJob.description && (
                   <div className="job-detail-section">
@@ -303,10 +278,7 @@ function Dashboard() {
                       a.position_id === selectedJob.position_id &&
                       a.application_status !== "Withdrawn"
                   ) ? (
-                    <button
-                      className="apply-btn apply-btn-applied"
-                      disabled
-                    >
+                    <button className="apply-btn apply-btn-applied" disabled>
                       Already Applied
                     </button>
                   ) : (
