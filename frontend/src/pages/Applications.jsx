@@ -123,23 +123,23 @@ function ApplicationCard({ app, position, onRemove }) {
 
   return (
     <div
-  className="app-card"
-  style={{
-    border:
-      app.application_status === "Interview"
-        ? "2px solid orange"
-        : app.application_status === "Offer"
-        ? "2px solid green"
-        : "1px solid #333",
-    boxShadow:
-      app.application_status === "Offer"
-        ? "0 0 12px rgba(40,167,69,0.7)"
-        : app.application_status === "Interview"
-        ? "0 0 8px rgba(255,165,0,0.5)"
-        : "none",
-    transition: "0.2s ease-in-out",
-  }}
->
+      className="app-card"
+      style={{
+        border:
+          app.application_status === "Interview"
+            ? "2px solid orange"
+            : app.application_status === "Offer"
+              ? "2px solid green"
+              : "1px solid #333",
+        boxShadow:
+          app.application_status === "Offer"
+            ? "0 0 12px rgba(40,167,69,0.7)"
+            : app.application_status === "Interview"
+              ? "0 0 8px rgba(255,165,0,0.5)"
+              : "none",
+        transition: "0.2s ease-in-out",
+      }}
+    >
       <div className="app-card-header">
         <div className="app-card-info">
           <h3 className="app-card-title">{title}</h3>
@@ -206,56 +206,56 @@ function Applications() {
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-  const load = async () => {
-    try {
-      const res = await fetch(`${API}/jobs/dashboard`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+    const load = async () => {
+      try {
+        const res = await fetch(`${API}/jobs/dashboard`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
 
-      if (!res.ok) {
+        if (!res.ok) {
+          setApplications(MOCK_APPLICATIONS);
+          setPositions(MOCK_POSITIONS);
+          setError("");
+          setLoading(false);
+          return;
+        }
+
+        const apps = await res.json();
+
+        if (!apps || apps.length === 0) {
+          setApplications(MOCK_APPLICATIONS);
+          setPositions(MOCK_POSITIONS);
+          setError("");
+          setLoading(false);
+          return;
+        }
+
+        setApplications(apps);
+
+        const uniqueIds = [...new Set(apps.map((a) => a.position_id))];
+        const posMap = {};
+
+        await Promise.all(
+          uniqueIds.map(async (id) => {
+            const r = await fetch(`${API}/jobs/positions/${id}`, {
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            if (r.ok) posMap[id] = await r.json();
+          })
+        );
+
+        setPositions(posMap);
+        setLoading(false);
+      } catch (err) {
         setApplications(MOCK_APPLICATIONS);
         setPositions(MOCK_POSITIONS);
         setError("");
         setLoading(false);
-        return;
       }
+    };
 
-      const apps = await res.json();
-
-      if (!apps || apps.length === 0) {
-        setApplications(MOCK_APPLICATIONS);
-        setPositions(MOCK_POSITIONS);
-        setError("");
-        setLoading(false);
-        return;
-      }
-
-      setApplications(apps);
-
-      const uniqueIds = [...new Set(apps.map((a) => a.position_id))];
-      const posMap = {};
-
-      await Promise.all(
-        uniqueIds.map(async (id) => {
-          const r = await fetch(`${API}/jobs/positions/${id}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          });
-          if (r.ok) posMap[id] = await r.json();
-        })
-      );
-
-      setPositions(posMap);
-      setLoading(false);
-    } catch (err) {
-      setApplications(MOCK_APPLICATIONS);
-      setPositions(MOCK_POSITIONS);
-      setError("");
-      setLoading(false);
-    }
-  };
-
-  load();
-}, []);
+    load();
+  }, []);
 
   const filtered =
     filter === "All"
