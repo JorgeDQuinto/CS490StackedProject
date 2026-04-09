@@ -265,12 +265,18 @@ function Applications() {
       : a.application_status === filter;
 
   const positionTitle = positions[a.position_id]?.title || "";
+  const companyName = positions[a.position_id]?.company_name || "";
+
+  const query = search.toLowerCase().trim();
 
   const matchesSearch =
-    positionTitle.toLowerCase().includes(search.toLowerCase());
+    query === "" ||
+    positionTitle.toLowerCase().includes(query) ||
+    companyName.toLowerCase().includes(query);
 
   return matchesStage && matchesSearch;
 });
+
   return (
     <div className="applications-page">
       <h1>My Applications</h1>
@@ -279,14 +285,28 @@ function Applications() {
 
       {!loading && !error && (
         <>
-        <input
-  type="text"
-  placeholder="Search jobs..."
-  value={search}
-  onChange={(e) => setSearch(e.target.value)}
-  className="app-search"
-/>
-          <div className="app-filters">
+        <div className="app-filters">
+
+  <div className="app-search-row">
+    <input
+      type="text"
+      placeholder="Search jobs..."
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      className="app-search"
+    />
+
+    <button
+      type="button"
+      className="app-filter-btn"
+      onClick={() => {
+        setFilter("All");
+        setSearch("");
+      }}
+    >
+      Clear
+    </button>
+  </div>
             {["All", ...STAGES].map((s) => (
               <button
                 key={s}
