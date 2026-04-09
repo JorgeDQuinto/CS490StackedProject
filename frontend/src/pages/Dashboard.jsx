@@ -238,10 +238,7 @@ function Dashboard() {
 
             {selectedJob && (
               <div className="job-board-detail">
-                <button
-                  className="expand-btn"
-                  onClick={() => setExpandedJob(true)}
-                >
+                <button className="expand-btn" onClick={() => setExpandedJob(true)}>
                   &lt; Expand
                 </button>
                 <h2 className="job-detail-title">
@@ -299,10 +296,7 @@ function Dashboard() {
                     </button>
                   </div>
                 ) : (
-                  <button
-                    className="apply-btn"
-                    onClick={() => navigate("/signin")}
-                  >
+                  <button className="apply-btn" onClick={() => navigate("/signin")}>
                     Sign In to Apply
                   </button>
                 )}
@@ -369,16 +363,15 @@ function Dashboard() {
                       <button
                         className="apply-btn"
                         style={{ backgroundColor: "#6c757d" }}
-                        onClick={() => navigate(`/jobs/edit/${selectedJob.position_id}`)}
+                        onClick={() =>
+                          navigate(`/jobs/edit/${selectedJob.position_id}`)
+                        }
                       >
                         Edit Posting
                       </button>
                     </div>
                   ) : (
-                    <button
-                      className="apply-btn"
-                      onClick={() => navigate("/signin")}
-                    >
+                    <button className="apply-btn" onClick={() => navigate("/signin")}>
                       Sign In to Apply
                     </button>
                   )}
