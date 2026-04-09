@@ -336,9 +336,7 @@ function Applications() {
     try {
       setIsDeleting(true);
 
-      setApplications((prev) =>
-        prev.filter((a) => a.job_id !== deleteTarget.job_id)
-      );
+      setApplications((prev) => prev.filter((a) => a.job_id !== deleteTarget.job_id));
 
       setDeleteTarget(null);
     } catch (err) {
