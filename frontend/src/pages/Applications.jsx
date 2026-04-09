@@ -259,23 +259,23 @@ function Applications() {
   }, []);
 
   const filtered = applications.filter((a) => {
-  const matchesStage =
-    filter === "All"
-      ? a.application_status !== "Withdrawn"
-      : a.application_status === filter;
+    const matchesStage =
+      filter === "All"
+        ? a.application_status !== "Withdrawn"
+        : a.application_status === filter;
 
-  const positionTitle = positions[a.position_id]?.title || "";
-  const companyName = positions[a.position_id]?.company_name || "";
+    const positionTitle = positions[a.position_id]?.title || "";
+    const companyName = positions[a.position_id]?.company_name || "";
 
-  const query = search.toLowerCase().trim();
+    const query = search.toLowerCase().trim();
 
-  const matchesSearch =
-    query === "" ||
-    positionTitle.toLowerCase().includes(query) ||
-    companyName.toLowerCase().includes(query);
+    const matchesSearch =
+      query === "" ||
+      positionTitle.toLowerCase().includes(query) ||
+      companyName.toLowerCase().includes(query);
 
-  return matchesStage && matchesSearch;
-});
+    return matchesStage && matchesSearch;
+  });
 
   return (
     <div className="applications-page">
@@ -285,46 +285,46 @@ function Applications() {
 
       {!loading && !error && (
         <>
-        <div className="app-controls">
-  <div className="app-search-row">
-    <input
-      type="text"
-      placeholder="Search jobs..."
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-      className="app-search"
-    />
+          <div className="app-controls">
+            <div className="app-search-row">
+              <input
+                type="text"
+                placeholder="Search jobs..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="app-search"
+              />
 
-    <button
-      type="button"
-      className="app-clear-btn"
-      disabled={!search && filter === "All"}
-      onClick={() => {
-        setFilter("All");
-        setSearch("");
-      }}
-    >
-      Clear
-    </button>
-  </div>
+              <button
+                type="button"
+                className="app-clear-btn"
+                disabled={!search && filter === "All"}
+                onClick={() => {
+                  setFilter("All");
+                  setSearch("");
+                }}
+              >
+                Clear
+              </button>
+            </div>
 
-  <div className="app-filters">
-    {["All", ...STAGES].map((s) => (
-      <button
-        key={s}
-        className={`app-filter-btn ${filter === s ? "app-filter-btn-active" : ""}`}
-        onClick={() => setFilter(s)}
-      >
-        {s}
-        {s !== "All" && (
-          <span className="app-filter-count">
-            {applications.filter((a) => a.application_status === s).length}
-          </span>
-        )}
-      </button>
-    ))}
-  </div>
-</div>
+            <div className="app-filters">
+              {["All", ...STAGES].map((s) => (
+                <button
+                  key={s}
+                  className={`app-filter-btn ${filter === s ? "app-filter-btn-active" : ""}`}
+                  onClick={() => setFilter(s)}
+                >
+                  {s}
+                  {s !== "All" && (
+                    <span className="app-filter-count">
+                      {applications.filter((a) => a.application_status === s).length}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {filtered.length === 0 ? (
             <p className="applications-placeholder">
