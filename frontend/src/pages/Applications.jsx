@@ -203,6 +203,7 @@ function Applications() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("All");
+  const [search, setSearch] = useState("");
   const token = localStorage.getItem("token");
 
   useEffect(() => {
@@ -257,10 +258,24 @@ function Applications() {
     load();
   }, []);
 
-  const filtered =
-    filter === "All"
-      ? applications.filter((a) => a.application_status !== "Withdrawn")
-      : applications.filter((a) => a.application_status === filter);
+  const filtered = applications.filter((a) => {
+    const matchesStage =
+      filter === "All"
+        ? a.application_status !== "Withdrawn"
+        : a.application_status === filter;
+
+    const positionTitle = positions[a.position_id]?.title || "";
+    const companyName = positions[a.position_id]?.company_name || "";
+
+    const query = search.toLowerCase().trim();
+
+    const matchesSearch =
+      query === "" ||
+      positionTitle.toLowerCase().includes(query) ||
+      companyName.toLowerCase().includes(query);
+
+    return matchesStage && matchesSearch;
+  });
 
   return (
     <div className="applications-page">
@@ -270,21 +285,45 @@ function Applications() {
 
       {!loading && !error && (
         <>
-          <div className="app-filters">
-            {["All", ...STAGES].map((s) => (
+          <div className="app-controls">
+            <div className="app-search-row">
+              <input
+                type="text"
+                placeholder="Search jobs..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="app-search"
+              />
+
               <button
-                key={s}
-                className={`app-filter-btn ${filter === s ? "app-filter-btn-active" : ""}`}
-                onClick={() => setFilter(s)}
+                type="button"
+                className="app-clear-btn"
+                disabled={!search && filter === "All"}
+                onClick={() => {
+                  setFilter("All");
+                  setSearch("");
+                }}
               >
-                {s}
-                {s !== "All" && (
-                  <span className="app-filter-count">
-                    {applications.filter((a) => a.application_status === s).length}
-                  </span>
-                )}
+                Clear
               </button>
-            ))}
+            </div>
+
+            <div className="app-filters">
+              {["All", ...STAGES].map((s) => (
+                <button
+                  key={s}
+                  className={`app-filter-btn ${filter === s ? "app-filter-btn-active" : ""}`}
+                  onClick={() => setFilter(s)}
+                >
+                  {s}
+                  {s !== "All" && (
+                    <span className="app-filter-count">
+                      {applications.filter((a) => a.application_status === s).length}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
 
           {filtered.length === 0 ? (
