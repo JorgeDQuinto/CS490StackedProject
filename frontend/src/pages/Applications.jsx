@@ -74,7 +74,9 @@ function Pipeline({ current }) {
         <div key={stage} className="pipeline-step">
           <div
             className={`pipeline-dot ${i <= currentIdx ? "pipeline-dot-active" : ""}`}
-            style={i === currentIdx ? { backgroundColor: STATUS_COLOR[current] } : {}}
+            style={
+              i === currentIdx ? { backgroundColor: STATUS_COLOR[current] } : {}
+            }
           />
           <span
             className={`pipeline-label ${i === currentIdx ? "pipeline-label-active" : ""}`}
@@ -94,7 +96,9 @@ function Pipeline({ current }) {
             className="pipeline-dot pipeline-dot-active"
             style={{ backgroundColor: STATUS_COLOR[current] }}
           />
-          <span className="pipeline-label pipeline-label-active">{current}</span>
+          <span className="pipeline-label pipeline-label-active">
+            {current}
+          </span>
         </div>
       )}
     </div>
@@ -116,9 +120,12 @@ function ApplicationCard({ app, position, onRemove }) {
     }
 
     try {
-      const res = await fetch(`${API}/jobs/applications/${app.job_id}/activity`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const res = await fetch(
+        `${API}/jobs/applications/${app.job_id}/activity`,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
+      );
 
       if (res.ok) {
         setActivity(await res.json());
@@ -182,8 +189,8 @@ I am eager to bring my motivation, adaptability, and willingness to learn to you
           <h3 className="app-card-title">{title}</h3>
           <span className="app-card-meta">Applied {app.application_date}</span>
           <span className="app-card-meta">
-            {app.years_of_experience} yr{app.years_of_experience !== 1 ? "s" : ""}{" "}
-            experience
+            {app.years_of_experience} yr
+            {app.years_of_experience !== 1 ? "s" : ""} experience
           </span>
         </div>
 
@@ -332,7 +339,9 @@ function Applications() {
 
     try {
       setIsDeleting(true);
-      setApplications((prev) => prev.filter((a) => a.job_id !== deleteTarget.job_id));
+      setApplications((prev) =>
+        prev.filter((a) => a.job_id !== deleteTarget.job_id)
+      );
       setDeleteTarget(null);
     } catch (err) {
       console.error("Failed to delete application:", err);
@@ -397,7 +406,10 @@ function Applications() {
                   {s}
                   {s !== "All" && (
                     <span className="app-filter-count">
-                      {applications.filter((a) => a.application_status === s).length}
+                      {
+                        applications.filter((a) => a.application_status === s)
+                          .length
+                      }
                     </span>
                   )}
                 </button>
@@ -418,7 +430,11 @@ function Applications() {
                   key={app.job_id}
                   app={app}
                   position={positions[app.position_id]}
-                  onRemove={() => setDeleteTarget(app)}
+                  onRemove={(id) =>
+                    setApplications((prev) =>
+                      prev.filter((a) => a.job_id !== id)
+                    )
+                  }
                 />
               ))}
             </div>
