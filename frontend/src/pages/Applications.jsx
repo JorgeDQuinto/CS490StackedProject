@@ -106,7 +106,24 @@ function ApplicationCard({ app, position, onRemove }) {
   const title    = position?.title    || `Position #${app.position_id}`;
 
   return (
-    <div className="app-card">
+    <div
+  className="app-card"
+  style={{
+    border:
+      app.application_status === "Interview"
+        ? "2px solid orange"
+        : app.application_status === "Offer"
+        ? "2px solid green"
+        : "1px solid #333",
+    boxShadow:
+      app.application_status === "Offer"
+        ? "0 0 12px rgba(40,167,69,0.7)"
+        : app.application_status === "Interview"
+        ? "0 0 8px rgba(255,165,0,0.5)"
+        : "none",
+    transition: "0.2s ease-in-out",
+  }}
+>
       <div className="app-card-header">
         <div className="app-card-info">
           <h3 className="app-card-title">{title}</h3>
