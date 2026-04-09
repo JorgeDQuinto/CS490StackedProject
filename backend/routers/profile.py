@@ -3,7 +3,12 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from database.auth import get_current_user
-from database.models.profile import create_profile, get_profile, get_profile_by_user_id, update_profile
+from database.models.profile import (
+    create_profile,
+    get_profile,
+    get_profile_by_user_id,
+    update_profile,
+)
 from database.models.user import User
 from schemas import ProfileCreate, ProfileResponse, ProfileUpdate
 
@@ -17,7 +22,9 @@ def get_my_profile(
 ):
     profile = get_profile_by_user_id(session, current_user.user_id)
     if not profile:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found"
+        )
     return profile
 
 

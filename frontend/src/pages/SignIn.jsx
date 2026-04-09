@@ -126,7 +126,6 @@ function SignIn() {
         {error && <p className="signin-error">{error}</p>}
         {success && <p className="signin-success">{success}</p>}
         <form onSubmit={handleSubmit} className="signin-form">
-
           {mode === "signup" && (
             <>
               <label>First Name</label>
@@ -207,8 +206,7 @@ function SignIn() {
           </button>
         </form>
         <p className="signin-switch">
-          {mode === "signin" ? "Don't have an account?" : "Already have an account?"}
-          {" "}
+          {mode === "signin" ? "Don't have an account?" : "Already have an account?"}{" "}
           <button className="signin-switch-btn" onClick={switchMode}>
             {mode === "signin" ? "Sign Up" : "Sign In"}
           </button>

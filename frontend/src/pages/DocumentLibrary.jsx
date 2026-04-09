@@ -84,7 +84,9 @@ function DocumentLibrary() {
           <label>Document Type</label>
           <select value={docType} onChange={(e) => setDocType(e.target.value)}>
             {DOCUMENT_TYPES.map((t) => (
-              <option key={t} value={t}>{t}</option>
+              <option key={t} value={t}>
+                {t}
+              </option>
             ))}
           </select>
 
@@ -125,7 +127,9 @@ function DocumentLibrary() {
                 <tr key={doc.doc_id}>
                   <td>{doc.document_location.split("/").pop()}</td>
                   <td>{doc.document_type}</td>
-                  <td><span className="doclibrary-confirmed">✓ In System</span></td>
+                  <td>
+                    <span className="doclibrary-confirmed">✓ In System</span>
+                  </td>
                 </tr>
               ))}
             </tbody>

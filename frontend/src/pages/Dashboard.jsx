@@ -25,8 +25,18 @@ function ApplyModal({ job, onClose, onConfirm }) {
         <p className="apply-modal-company">Are you sure you want to apply?</p>
         {error && <p className="apply-modal-error">{error}</p>}
         <div className="apply-modal-actions">
-          <button className="apply-modal-cancel" onClick={onClose} disabled={submitting}>Cancel</button>
-          <button className="apply-modal-confirm" onClick={handleConfirm} disabled={submitting}>
+          <button
+            className="apply-modal-cancel"
+            onClick={onClose}
+            disabled={submitting}
+          >
+            Cancel
+          </button>
+          <button
+            className="apply-modal-confirm"
+            onClick={handleConfirm}
+            disabled={submitting}
+          >
             {submitting ? "Applying…" : "Confirm Apply"}
           </button>
         </div>
@@ -61,8 +71,12 @@ function Dashboard() {
       // Applications and documents require auth
       if (token) {
         const [appRes, docRes] = await Promise.all([
-          fetch(`${API}/jobs/dashboard`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API}/documents/me`,   { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API}/jobs/dashboard`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${API}/documents/me`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         ]);
         if (appRes.ok) setApplications(await appRes.json());
         if (docRes.ok) setDocuments(await docRes.json());
@@ -74,14 +88,20 @@ function Dashboard() {
   }, [location.pathname]);
 
   const handleApply = async (position_id) => {
-    const meRes = await fetch(`${API}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+    const meRes = await fetch(`${API}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     if (!meRes.ok) return "You must be signed in to apply.";
     const me = await meRes.json();
 
     const res = await fetch(`${API}/jobs/applications/`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ user_id: me.user_id, position_id, years_of_experience: 0 }),
+      body: JSON.stringify({
+        user_id: me.user_id,
+        position_id,
+        years_of_experience: 0,
+      }),
     });
 
     if (!res.ok) {
@@ -93,7 +113,9 @@ function Dashboard() {
     setApplySuccess(`Applied to ${applyTarget?.title}!`);
     setTimeout(() => setApplySuccess(""), 3000);
     // Refresh applications preview
-    const appRes = await fetch(`${API}/jobs/dashboard`, { headers: { Authorization: `Bearer ${token}` } });
+    const appRes = await fetch(`${API}/jobs/dashboard`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     if (appRes.ok) setApplications(await appRes.json());
     return null;
   };
@@ -102,8 +124,12 @@ function Dashboard() {
     jobBoardRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  if (loading) return <div className="dashboard"><p style={{ color: "#888", padding: "2rem" }}>Loading…</p></div>;
-
+  if (loading)
+    return (
+      <div className="dashboard">
+        <p style={{ color: "#888", padding: "2rem" }}>Loading…</p>
+      </div>
+    );
 
   return (
     <div className="dashboard">
@@ -174,7 +200,9 @@ function Dashboard() {
               documents.slice(0, 2).map((doc) => (
                 <div key={doc.doc_id} className="preview-job-item">
                   <span className="preview-job-company">{doc.document_type}</span>
-                  <span className="preview-job-title">{doc.document_location.split("/").pop()}</span>
+                  <span className="preview-job-title">
+                    {doc.document_location.split("/").pop()}
+                  </span>
                 </div>
               ))
             )}
@@ -198,7 +226,9 @@ function Dashboard() {
                   <span className="job-card-company">{job.company_name}</span>
                   <h3 className="job-card-title">{job.title}</h3>
                   <span className="job-card-meta">
-                    {job.salary ? `$${Number(job.salary).toLocaleString()}` : "Salary not listed"}
+                    {job.salary
+                      ? `$${Number(job.salary).toLocaleString()}`
+                      : "Salary not listed"}
                   </span>
                   <span className="job-card-meta">{job.listing_date}</span>
                 </div>
@@ -211,7 +241,9 @@ function Dashboard() {
                   {selectedJob.title} @ {selectedJob.company_name}
                 </h2>
                 <p className="job-detail-meta">
-                  {selectedJob.salary ? `$${Number(selectedJob.salary).toLocaleString()}` : "Salary not listed"}
+                  {selectedJob.salary
+                    ? `$${Number(selectedJob.salary).toLocaleString()}`
+                    : "Salary not listed"}
                 </p>
                 <p className="job-detail-meta">Listed: {selectedJob.listing_date}</p>
 
@@ -233,10 +265,36 @@ function Dashboard() {
                     <p>{selectedJob.experience_req}</p>
                   </div>
                 )}
-                {token && (
-                  applications.some(a => a.position_id === selectedJob.position_id && a.application_status !== "Withdrawn")
-                    ? <button className="apply-btn apply-btn-applied" disabled>Already Applied</button>
-                    : <button className="apply-btn" onClick={() => setApplyTarget(selectedJob)}>Apply Now</button>
+                {token ? (
+                  <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                    {applications.some(
+                      (a) =>
+                        a.position_id === selectedJob.position_id &&
+                        a.application_status !== "Withdrawn"
+                    ) ? (
+                      <button className="apply-btn apply-btn-applied" disabled>
+                        Already Applied
+                      </button>
+                    ) : (
+                      <button
+                        className="apply-btn"
+                        onClick={() => setApplyTarget(selectedJob)}
+                      >
+                        Apply Now
+                      </button>
+                    )}
+                    <button
+                      className="apply-btn"
+                      style={{ backgroundColor: "#6c757d" }}
+                      onClick={() => navigate(`/jobs/edit/${selectedJob.position_id}`)}
+                    >
+                      Edit Posting
+                    </button>
+                  </div>
+                ) : (
+                  <button className="apply-btn" onClick={() => navigate("/signin")}>
+                    Sign In to Apply
+                  </button>
                 )}
               </div>
             )}

@@ -4,16 +4,24 @@ import StageBadge from "../components/StageBadge";
 
 const API = "http://localhost:8000";
 
-const STAGES = ["Interested", "Applied", "Interview", "Offer", "Rejected", "Archived", "Withdrawn"];
+const STAGES = [
+  "Interested",
+  "Applied",
+  "Interview",
+  "Offer",
+  "Rejected",
+  "Archived",
+  "Withdrawn",
+];
 
 const STATUS_COLOR = {
-  Interested:  "#4f8ef7",
-  Applied:     "#a78bfa",
-  Interview:   "#f59e0b",
-  Offer:       "#22c55e",
-  Rejected:    "#ef4444",
-  Archived:    "#6b7280",
-  Withdrawn:   "#374151",
+  Interested: "#4f8ef7",
+  Applied: "#a78bfa",
+  Interview: "#f59e0b",
+  Offer: "#22c55e",
+  Rejected: "#ef4444",
+  Archived: "#6b7280",
+  Withdrawn: "#374151",
 };
 
 const MOCK_APPLICATIONS = [
@@ -56,9 +64,7 @@ const MOCK_POSITIONS = {
 
 function Pipeline({ current }) {
   const isTerminal = current === "Rejected" || current === "Archived";
-  const active = isTerminal
-    ? STAGES.slice(0, 4)
-    : STAGES.slice(0, 5);
+  const active = isTerminal ? STAGES.slice(0, 4) : STAGES.slice(0, 5);
 
   const currentIdx = active.indexOf(current);
 
@@ -70,17 +76,24 @@ function Pipeline({ current }) {
             className={`pipeline-dot ${i <= currentIdx ? "pipeline-dot-active" : ""}`}
             style={i === currentIdx ? { backgroundColor: STATUS_COLOR[current] } : {}}
           />
-          <span className={`pipeline-label ${i === currentIdx ? "pipeline-label-active" : ""}`}>
+          <span
+            className={`pipeline-label ${i === currentIdx ? "pipeline-label-active" : ""}`}
+          >
             {stage}
           </span>
           {i < active.length - 1 && (
-            <div className={`pipeline-line ${i < currentIdx ? "pipeline-line-active" : ""}`} />
+            <div
+              className={`pipeline-line ${i < currentIdx ? "pipeline-line-active" : ""}`}
+            />
           )}
         </div>
       ))}
       {isTerminal && (
         <div className="pipeline-step">
-          <div className="pipeline-dot pipeline-dot-active" style={{ backgroundColor: STATUS_COLOR[current] }} />
+          <div
+            className="pipeline-dot pipeline-dot-active"
+            style={{ backgroundColor: STATUS_COLOR[current] }}
+          />
           <span className="pipeline-label pipeline-label-active">{current}</span>
         </div>
       )}
@@ -95,7 +108,10 @@ function ApplicationCard({ app, position, onRemove }) {
   const token = localStorage.getItem("token");
 
   const loadActivity = async () => {
-    if (activity) { setExpanded(!expanded); return; }
+    if (activity) {
+      setExpanded(!expanded);
+      return;
+    }
     const res = await fetch(`${API}/jobs/applications/${app.job_id}/activity`, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -103,7 +119,7 @@ function ApplicationCard({ app, position, onRemove }) {
     setExpanded(true);
   };
 
-  const title    = position?.title    || `Position #${app.position_id}`;
+  const title = position?.title || `Position #${app.position_id}`;
 
   return (
     <div
@@ -128,7 +144,10 @@ function ApplicationCard({ app, position, onRemove }) {
         <div className="app-card-info">
           <h3 className="app-card-title">{title}</h3>
           <span className="app-card-meta">Applied {app.application_date}</span>
-          <span className="app-card-meta">{app.years_of_experience} yr{app.years_of_experience !== 1 ? "s" : ""} experience</span>
+          <span className="app-card-meta">
+            {app.years_of_experience} yr{app.years_of_experience !== 1 ? "s" : ""}{" "}
+            experience
+          </span>
         </div>
         <div className="app-card-right">
           <StageBadge status={app.application_status} />
@@ -238,9 +257,10 @@ function Applications() {
   load();
 }, []);
 
-  const filtered = filter === "All"
-    ? applications.filter((a) => a.application_status !== "Withdrawn")
-    : applications.filter((a) => a.application_status === filter);
+  const filtered =
+    filter === "All"
+      ? applications.filter((a) => a.application_status !== "Withdrawn")
+      : applications.filter((a) => a.application_status === filter);
 
   return (
     <div className="applications-page">
@@ -269,7 +289,9 @@ function Applications() {
 
           {filtered.length === 0 ? (
             <p className="applications-placeholder">
-              {filter === "All" ? "No applications yet." : `No applications with status "${filter}".`}
+              {filter === "All"
+                ? "No applications yet."
+                : `No applications with status "${filter}".`}
             </p>
           ) : (
             <div className="app-list">
@@ -278,7 +300,9 @@ function Applications() {
                   key={app.job_id}
                   app={app}
                   position={positions[app.position_id]}
-                  onRemove={(id) => setApplications((prev) => prev.filter((a) => a.job_id !== id))}
+                  onRemove={(id) =>
+                    setApplications((prev) => prev.filter((a) => a.job_id !== id))
+                  }
                 />
               ))}
             </div>
