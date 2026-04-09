@@ -10,7 +10,6 @@ from fastapi.middleware.cors import CORSMiddleware
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # from database import Base, engine
-from database import Base, engine
 from routers import (
     auth,
     company,
