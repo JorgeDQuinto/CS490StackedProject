@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Sequence, String, select
+from sqlalchemy import DateTime, ForeignKey, Integer, String, select
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
 from database.base import Base
@@ -16,17 +16,14 @@ class Interview(Base):
     __tablename__ = "interview"
 
     interview_id: Mapped[int] = mapped_column(
-        Integer,
-        Sequence("interview_id_seq", start=1),
-        primary_key=True,
-        autoincrement=True,
+        Integer, primary_key=True, autoincrement=True
     )
     job_id: Mapped[int] = mapped_column(
         ForeignKey("applied_jobs.job_id"), nullable=False
     )
     round_type: Mapped[str] = mapped_column(String(100), nullable=False)
-    date_time: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    notes: Mapped[str] = mapped_column(String(2000), nullable=True)
+    scheduled_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    notes: Mapped[str | None] = mapped_column(String(2000), nullable=True)
 
     # Relationships
     job: Mapped["AppliedJobs"] = relationship(back_populates="interviews")
@@ -41,20 +38,20 @@ def create_interview(
     session: Session,
     job_id: int,
     round_type: str,
-    date_time: datetime,
+    scheduled_at: datetime,
     notes: str | None = None,
 ) -> "Interview":
     """Create a new Interview row and return the persisted object."""
     interview = Interview(
         job_id=job_id,
         round_type=round_type,
-        date_time=date_time,
+        scheduled_at=scheduled_at,
         notes=notes,
     )
     session.add(interview)
     session.commit()
     session.refresh(interview)
-    return interview
+    return get_interview(session, interview.interview_id)
 
 
 def get_interview(session: Session, interview_id: int) -> "Interview | None":
@@ -62,13 +59,13 @@ def get_interview(session: Session, interview_id: int) -> "Interview | None":
     return session.get(Interview, interview_id)
 
 
-def get_interviews_for_job(session: Session, job_id: int) -> list["Interview"]:
-    """Return all interviews for a job ordered by date_time."""
+def get_interviews_by_job(session: Session, job_id: int) -> list["Interview"]:
+    """Return all interviews for a job ordered by scheduled_at."""
     rows = (
         session.execute(
             select(Interview)
             .where(Interview.job_id == job_id)
-            .order_by(Interview.date_time)
+            .order_by(Interview.scheduled_at)
         )
         .scalars()
         .all()
@@ -80,7 +77,7 @@ def update_interview(
     session: Session,
     interview_id: int,
     round_type: str | None = None,
-    date_time: datetime | None = None,
+    scheduled_at: datetime | None = None,
     notes: str | None = None,
 ) -> "Interview | None":
     """Update mutable fields on an existing interview. Returns None if not found."""
@@ -89,8 +86,8 @@ def update_interview(
         return None
     if round_type is not None:
         interview.round_type = round_type
-    if date_time is not None:
-        interview.date_time = date_time
+    if scheduled_at is not None:
+        interview.scheduled_at = scheduled_at
     if notes is not None:
         interview.notes = notes
     session.commit()

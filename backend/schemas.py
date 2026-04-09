@@ -111,6 +111,21 @@ class EducationCreate(BaseModel):
     degree: str
     school_or_college: str
     address: AddressCreate
+    field_of_study: str | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    gpa: str | None = None
+
+
+class EducationUpdate(BaseModel):
+    highest_education: str | None = None
+    degree: str | None = None
+    school_or_college: str | None = None
+    field_of_study: str | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    clear_end_date: bool = False
+    gpa: str | None = None
 
 
 class EducationResponse(BaseModel):
@@ -121,6 +136,10 @@ class EducationResponse(BaseModel):
     highest_education: str
     degree: str
     school_or_college: str
+    field_of_study: str | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    gpa: str | None = None
 
 
 # --------------------------------------------------------------------------- #
@@ -131,7 +150,10 @@ class EducationResponse(BaseModel):
 class DocumentCreate(BaseModel):
     user_id: int
     document_type: str
-    document_location: str
+    document_location: str | None = None
+    job_id: int | None = None
+    document_name: str | None = None
+    content: str | None = None
 
 
 class DocumentResponse(BaseModel):
@@ -139,8 +161,11 @@ class DocumentResponse(BaseModel):
 
     doc_id: int
     user_id: int
+    document_name: str | None = None
     document_type: str
-    document_location: str
+    document_location: str | None = None
+    content: str | None = None
+    job_id: int | None = None
 
 
 # --------------------------------------------------------------------------- #
@@ -161,6 +186,46 @@ class CompanyResponse(BaseModel):
 
 
 # --------------------------------------------------------------------------- #
+#  Recruiter                                                                    #
+# --------------------------------------------------------------------------- #
+
+
+class RecruiterCreate(BaseModel):
+    user_id: int
+    company_id: int
+    first_name: str
+    last_name: str
+    job_title: str | None = None
+
+
+class RecruiterUpdate(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    job_title: str | None = None
+
+
+class RecruiterResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    recruiter_id: int
+    user_id: int
+    company_id: int
+    first_name: str
+    last_name: str
+    job_title: str | None = None
+
+
+class RecruiterApplicationStatusUpdate(BaseModel):
+    application_status: str
+    outcome_notes: str | None = None
+
+
+class RecruiterActivityCreate(BaseModel):
+    event_type: str = "stage_change"
+    notes: str | None = None
+
+
+# --------------------------------------------------------------------------- #
 #  Position                                                                     #
 # --------------------------------------------------------------------------- #
 
@@ -169,6 +234,8 @@ class PositionCreate(BaseModel):
     company_id: int
     title: str
     listing_date: date
+    location_type: str | None = None
+    location: str | None = None
     salary: Decimal | None = None
     education_req: str | None = None
     experience_req: str | None = None
@@ -179,6 +246,8 @@ class PositionUpdate(BaseModel):
     company_id: int | None = None
     title: str | None = None
     listing_date: date | None = None
+    location_type: str | None = None
+    location: str | None = None
     salary: Decimal | None = None
     education_req: str | None = None
     experience_req: str | None = None
@@ -192,6 +261,8 @@ class PositionResponse(BaseModel):
     company_id: int
     title: str
     listing_date: date
+    location_type: str | None = None
+    location: str | None = None
     salary: Decimal | None
     education_req: str | None
     experience_req: str | None
@@ -206,6 +277,8 @@ class PositionWithCompanyResponse(BaseModel):
     company_name: str
     title: str
     listing_date: date
+    location_type: str | None = None
+    location: str | None = None
     salary: Decimal | None
     education_req: str | None
     experience_req: str | None
@@ -226,6 +299,9 @@ class ApplicationCreate(BaseModel):
 class ApplicationUpdate(BaseModel):
     application_status: str | None = None
     years_of_experience: int | None = None
+    deadline: date | None = None
+    recruiter_notes: str | None = None
+    outcome_notes: str | None = None
 
 
 class ApplicationResponse(BaseModel):
@@ -238,6 +314,16 @@ class ApplicationResponse(BaseModel):
     application_date: date
     application_status: str
     stage_changed_at: datetime | None = None
+    deadline: date | None = None
+    recruiter_notes: str | None = None
+    outcome_notes: str | None = None
+
+
+class JobActivityCreate(BaseModel):
+    job_id: int
+    stage: str
+    event_type: str = "stage_change"
+    notes: str | None = None
 
 
 class JobActivityResponse(BaseModel):
@@ -247,23 +333,25 @@ class JobActivityResponse(BaseModel):
     job_id: int
     stage: str
     changed_at: datetime
+    event_type: str
+    notes: str | None = None
 
 
 # --------------------------------------------------------------------------- #
-#  Interview Schemas                                                           #
+#  Interview                                                                    #
 # --------------------------------------------------------------------------- #
 
 
 class InterviewCreate(BaseModel):
     job_id: int
     round_type: str
-    date_time: datetime
+    scheduled_at: datetime
     notes: str | None = None
 
 
 class InterviewUpdate(BaseModel):
     round_type: str | None = None
-    date_time: datetime | None = None
+    scheduled_at: datetime | None = None
     notes: str | None = None
 
 
@@ -273,88 +361,132 @@ class InterviewResponse(BaseModel):
     interview_id: int
     job_id: int
     round_type: str
-    date_time: datetime
-    notes: str | None
+    scheduled_at: datetime
+    notes: str | None = None
 
 
 # --------------------------------------------------------------------------- #
-#  Outcome Schemas                                                             #
+#  Follow-Up                                                                    #
 # --------------------------------------------------------------------------- #
 
 
-class OutcomeState(str, Enum):
-    """Controlled outcome state values."""
-
-    APPLIED = "Applied"
-    REJECTED = "Rejected"
-    OFFER = "Offer"
-    ACCEPTED = "Accepted"
-    WITHDRAWN = "Withdrawn"
-
-
-class OutcomeCreate(BaseModel):
+class FollowUpCreate(BaseModel):
     job_id: int
-    outcome_state: OutcomeState
-    outcome_notes: str | None = None
+    description: str
+    due_date: date | None = None
 
 
-class OutcomeUpdate(BaseModel):
-    outcome_state: OutcomeState | None = None
-    outcome_notes: str | None = None
+class FollowUpUpdate(BaseModel):
+    description: str | None = None
+    due_date: date | None = None
+    completed: bool | None = None
 
 
-class OutcomeResponse(BaseModel):
+class FollowUpResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    outcome_id: int
+    followup_id: int
     job_id: int
-    outcome_state: str
-    outcome_notes: str | None
+    description: str
+    due_date: date | None = None
+    completed: bool
 
 
 # --------------------------------------------------------------------------- #
-#  Job Document Schemas                                                        #
+#  Experience                                                                   #
 # --------------------------------------------------------------------------- #
 
 
-class JobDocumentCreate(BaseModel):
-    job_id: int
+class ExperienceCreate(BaseModel):
+    user_id: int
+    company: str
     title: str
-    content: str
+    start_date: date
+    end_date: date | None = None
+    description: str | None = None
+    sort_order: int = 0
 
 
-class JobDocumentUpdate(BaseModel):
+class ExperienceUpdate(BaseModel):
+    company: str | None = None
     title: str | None = None
-    content: str | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    clear_end_date: bool = False
+    description: str | None = None
+    sort_order: int | None = None
 
 
-class JobDocumentResponse(BaseModel):
+class ExperienceResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    job_document_id: int
-    job_id: int
+    experience_id: int
+    user_id: int
+    company: str
     title: str
-    content: str
-    created_at: datetime
-    updated_at: datetime
+    start_date: date
+    end_date: date | None = None
+    description: str | None = None
+    sort_order: int
 
 
 # --------------------------------------------------------------------------- #
-#  Job Sorting Query Params                                                    #
+#  Skills                                                                       #
 # --------------------------------------------------------------------------- #
 
 
-class SortParam(str, Enum):
-    """Valid sort fields."""
+class SkillCreate(BaseModel):
+    user_id: int
+    name: str
+    category: str | None = None
+    proficiency: str | None = None
+    sort_order: int = 0
 
-    LAST_ACTIVITY = "last_activity"
-    DEADLINE = "deadline"
-    COMPANY = "company"
-    CREATED_AT = "created_at"
+
+class SkillUpdate(BaseModel):
+    name: str | None = None
+    category: str | None = None
+    proficiency: str | None = None
+    sort_order: int | None = None
 
 
-class OrderParam(str, Enum):
-    """Valid sort orders."""
+class SkillResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
 
-    ASC = "asc"
-    DESC = "desc"
+    skill_id: int
+    user_id: int
+    name: str
+    category: str | None = None
+    proficiency: str | None = None
+    sort_order: int
+
+
+# --------------------------------------------------------------------------- #
+#  Career Preferences                                                           #
+# --------------------------------------------------------------------------- #
+
+
+class CareerPreferencesCreate(BaseModel):
+    user_id: int
+    target_roles: str | None = None
+    location_preferences: str | None = None
+    work_mode: str | None = None
+    salary_preference: str | None = None
+
+
+class CareerPreferencesUpdate(BaseModel):
+    target_roles: str | None = None
+    location_preferences: str | None = None
+    work_mode: str | None = None
+    salary_preference: str | None = None
+
+
+class CareerPreferencesResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    preference_id: int
+    user_id: int
+    target_roles: str | None = None
+    location_preferences: str | None = None
+    work_mode: str | None = None
+    salary_preference: str | None = None

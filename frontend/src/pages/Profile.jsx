@@ -74,7 +74,7 @@ function Profile() {
   const [profile, setProfile] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null); // null | "info" | "about"
+  const [modal, setModal] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
   const token = localStorage.getItem("token");
 
@@ -106,7 +106,6 @@ function Profile() {
   const saveProfile = async (values) => {
     let res;
     if (!profile) {
-      // No profile yet — create one
       res = await fetch(`${API}/profile/`, {
         method: "POST",
         headers: {
@@ -181,7 +180,6 @@ function Profile() {
 
       {statusMessage && <p style={styles.status}>{statusMessage}</p>}
 
-      {/* Completion */}
       <div style={styles.card}>
         <h2 style={styles.cardTitle}>Profile Completion</h2>
         <p style={styles.percentageText}>{completionPct}% complete</p>
@@ -193,7 +191,6 @@ function Profile() {
         </p>
       </div>
 
-      {/* Summary */}
       <div style={styles.card}>
         <div style={styles.cardHeader}>
           <h2 style={styles.cardTitle}>Profile Summary</h2>
@@ -214,7 +211,6 @@ function Profile() {
         </div>
       </div>
 
-      {/* About / Bio */}
       <div style={styles.card}>
         <div style={styles.cardHeader}>
           <h2 style={styles.cardTitle}>About</h2>
@@ -231,7 +227,6 @@ function Profile() {
         )}
       </div>
 
-      {/* Missing fields */}
       {missingFields.length > 0 && (
         <div style={styles.card}>
           <h2 style={styles.cardTitle}>Missing Information</h2>
@@ -250,7 +245,6 @@ function Profile() {
         </div>
       )}
 
-      {/* Edit info modal */}
       {modal === "info" && (
         <EditModal
           title="Edit Profile Info"
@@ -283,7 +277,6 @@ function Profile() {
         />
       )}
 
-      {/* Edit about modal */}
       {modal === "about" && (
         <EditModal
           title="Edit About"
