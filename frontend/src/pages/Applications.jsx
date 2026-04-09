@@ -203,6 +203,7 @@ function Applications() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("All");
+  const [search, setSearch] = useState("");
   const token = localStorage.getItem("token");
 
   useEffect(() => {
@@ -263,7 +264,12 @@ function Applications() {
       ? a.application_status !== "Withdrawn"
       : a.application_status === filter;
 
-  return matchesStage;
+  const positionTitle = positions[a.position_id]?.title || "";
+
+  const matchesSearch =
+    positionTitle.toLowerCase().includes(search.toLowerCase());
+
+  return matchesStage && matchesSearch;
 });
   return (
     <div className="applications-page">
@@ -273,6 +279,13 @@ function Applications() {
 
       {!loading && !error && (
         <>
+        <input
+  type="text"
+  placeholder="Search jobs..."
+  value={search}
+  onChange={(e) => setSearch(e.target.value)}
+  className="app-search"
+/>
           <div className="app-filters">
             {["All", ...STAGES].map((s) => (
               <button
@@ -280,7 +293,7 @@ function Applications() {
                 className={`app-filter-btn ${filter === s ? "app-filter-btn-active" : ""}`}
                 onClick={() => setFilter(s)}
               >
-                {s}
+                         {s}
                 {s !== "All" && (
                   <span className="app-filter-count">
                     {applications.filter((a) => a.application_status === s).length}
