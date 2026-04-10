@@ -44,7 +44,11 @@ function EditModal({ title, fields, onSave, onCancel }) {
                 name={f.name}
                 value={values[f.name]}
                 onChange={handleChange}
-                style={{ ...styles.modalInput, height: "100px", resize: "vertical" }}
+                style={{
+                  ...styles.modalInput,
+                  height: "100px",
+                  resize: "vertical",
+                }}
                 placeholder={f.placeholder || ""}
               />
             ) : (

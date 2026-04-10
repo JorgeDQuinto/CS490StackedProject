@@ -209,7 +209,15 @@ function SignIn() {
             required
           />
           {mode === "signin" && (
-            <label style={{ display: "flex", gap: "8px", alignItems: "center", fontSize: "14px", fontWeight: "normal" }}>
+            <label
+              style={{
+                display: "flex",
+                gap: "8px",
+                alignItems: "center",
+                fontSize: "14px",
+                fontWeight: "normal",
+              }}
+            >
               <input
                 type="checkbox"
                 checked={isRecruiter}

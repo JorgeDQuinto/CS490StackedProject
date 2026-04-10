@@ -14,17 +14,19 @@ function ProtectedRoute({ children }) {
     }
     fetch(`${API}/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
-    }).then((res) => {
-      if (res.ok) {
-        setValid(true);
-      } else {
-        localStorage.removeItem("token");
-        localStorage.removeItem("isRecruiter");
+    })
+      .then((res) => {
+        if (res.ok) {
+          setValid(true);
+        } else {
+          localStorage.removeItem("token");
+          localStorage.removeItem("isRecruiter");
+          setValid(false);
+        }
+      })
+      .catch(() => {
         setValid(false);
-      }
-    }).catch(() => {
-      setValid(false);
-    });
+      });
   }, [token]);
 
   if (valid === null) return null; // still checking — render nothing briefly

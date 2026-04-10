@@ -34,15 +34,21 @@ function Profile() {
 
     const safe = (p) => p.catch(() => null);
     Promise.all([
-      safe(fetch(`${API}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then((r) => (r.ok ? r.json() : null))),
-      safe(fetch(`${API}/profile/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then((r) => (r.ok ? r.json() : null))),
-      safe(fetch(`${API}/documents/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then((r) => (r.ok ? r.json() : []))),
+      safe(
+        fetch(`${API}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then((r) => (r.ok ? r.json() : null))
+      ),
+      safe(
+        fetch(`${API}/profile/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then((r) => (r.ok ? r.json() : null))
+      ),
+      safe(
+        fetch(`${API}/documents/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then((r) => (r.ok ? r.json() : []))
+      ),
     ]).then(([me, prof, docs]) => {
       setEmail(me?.email || "");
       setUserId(me?.user_id || null);
@@ -116,7 +122,8 @@ function Profile() {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       const msg = err.detail;
-      if (Array.isArray(msg)) return msg.map((e) => e.msg).join(", ") || "Validation error.";
+      if (Array.isArray(msg))
+        return msg.map((e) => e.msg).join(", ") || "Validation error.";
       return (typeof msg === "string" ? msg : null) || "Failed to save.";
     }
 
@@ -181,13 +188,18 @@ function Profile() {
     const saved = await res.json();
     setExperiences((prev) =>
       activeRecord
-        ? prev.map((e) => (e.experience_id === activeRecord.experience_id ? saved : e))
+        ? prev.map((e) =>
+            e.experience_id === activeRecord.experience_id ? saved : e
+          )
         : [...prev, saved]
     );
     setSectionModal(null);
     setActiveRecord(null);
     setSectionStatus((prev) => ({ ...prev, experience: "Saved!" }));
-    setTimeout(() => setSectionStatus((prev) => ({ ...prev, experience: "" })), 3000);
+    setTimeout(
+      () => setSectionStatus((prev) => ({ ...prev, experience: "" })),
+      3000
+    );
     return null;
   };
 
@@ -200,7 +212,9 @@ function Profile() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
-        setExperiences((prev) => prev.filter((e) => e.experience_id !== deleteTarget.id));
+        setExperiences((prev) =>
+          prev.filter((e) => e.experience_id !== deleteTarget.id)
+        );
       }
     } finally {
       setIsDeleting(false);
@@ -216,12 +230,18 @@ function Profile() {
     await Promise.all([
       fetch(`${API}/experience/${a.experience_id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ sort_order: b.sort_order }),
       }),
       fetch(`${API}/experience/${b.experience_id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ sort_order: a.sort_order }),
       }),
     ]);
@@ -295,13 +315,18 @@ function Profile() {
     const saved = await res.json();
     setEducations((prev) =>
       activeRecord
-        ? prev.map((e) => (e.education_id === activeRecord.education_id ? saved : e))
+        ? prev.map((e) =>
+            e.education_id === activeRecord.education_id ? saved : e
+          )
         : [...prev, saved]
     );
     setSectionModal(null);
     setActiveRecord(null);
     setSectionStatus((prev) => ({ ...prev, education: "Saved!" }));
-    setTimeout(() => setSectionStatus((prev) => ({ ...prev, education: "" })), 3000);
+    setTimeout(
+      () => setSectionStatus((prev) => ({ ...prev, education: "" })),
+      3000
+    );
     return null;
   };
 
@@ -314,7 +339,9 @@ function Profile() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
-        setEducations((prev) => prev.filter((e) => e.education_id !== deleteTarget.id));
+        setEducations((prev) =>
+          prev.filter((e) => e.education_id !== deleteTarget.id)
+        );
       }
     } finally {
       setIsDeleting(false);
@@ -372,7 +399,10 @@ function Profile() {
     setSectionModal(null);
     setActiveRecord(null);
     setSectionStatus((prev) => ({ ...prev, skills: "Saved!" }));
-    setTimeout(() => setSectionStatus((prev) => ({ ...prev, skills: "" })), 3000);
+    setTimeout(
+      () => setSectionStatus((prev) => ({ ...prev, skills: "" })),
+      3000
+    );
     return null;
   };
 
@@ -419,7 +449,10 @@ function Profile() {
     setCareerPrefs(saved);
     setSectionModal(null);
     setSectionStatus((prev) => ({ ...prev, career: "Saved!" }));
-    setTimeout(() => setSectionStatus((prev) => ({ ...prev, career: "" })), 3000);
+    setTimeout(
+      () => setSectionStatus((prev) => ({ ...prev, career: "" })),
+      3000
+    );
     return null;
   };
 
@@ -457,19 +490,69 @@ function Profile() {
   const educationModalFields = () => {
     const rec = activeRecord || {};
     const fields = [
-      { name: "highest_education", label: "Highest Education", value: rec.highest_education || "", placeholder: "e.g. Bachelor's" },
-      { name: "degree", label: "Degree", value: rec.degree || "", placeholder: "e.g. Bachelor of Science" },
-      { name: "school_or_college", label: "School / College", value: rec.school_or_college || "", placeholder: "e.g. Rutgers University" },
-      { name: "field_of_study", label: "Field of Study", value: rec.field_of_study || "", placeholder: "e.g. Computer Science" },
-      { name: "start_date", label: "Start Date", value: rec.start_date || "", type: "date" },
-      { name: "end_date", label: "End Date (leave blank if current)", value: rec.end_date || "", type: "date" },
-      { name: "gpa", label: "GPA (optional)", value: rec.gpa != null ? String(rec.gpa) : "", placeholder: "e.g. 3.8" },
+      {
+        name: "highest_education",
+        label: "Highest Education",
+        value: rec.highest_education || "",
+        placeholder: "e.g. Bachelor's",
+      },
+      {
+        name: "degree",
+        label: "Degree",
+        value: rec.degree || "",
+        placeholder: "e.g. Bachelor of Science",
+      },
+      {
+        name: "school_or_college",
+        label: "School / College",
+        value: rec.school_or_college || "",
+        placeholder: "e.g. Rutgers University",
+      },
+      {
+        name: "field_of_study",
+        label: "Field of Study",
+        value: rec.field_of_study || "",
+        placeholder: "e.g. Computer Science",
+      },
+      {
+        name: "start_date",
+        label: "Start Date",
+        value: rec.start_date || "",
+        type: "date",
+      },
+      {
+        name: "end_date",
+        label: "End Date (leave blank if current)",
+        value: rec.end_date || "",
+        type: "date",
+      },
+      {
+        name: "gpa",
+        label: "GPA (optional)",
+        value: rec.gpa != null ? String(rec.gpa) : "",
+        placeholder: "e.g. 3.8",
+      },
     ];
     if (!activeRecord) {
       fields.push(
-        { name: "address_street", label: "Street Address (optional)", value: "", placeholder: "e.g. 123 College Ave" },
-        { name: "address_state", label: "State (optional)", value: "", placeholder: "e.g. NJ" },
-        { name: "address_zip", label: "Zip Code (optional)", value: "", placeholder: "e.g. 08854" }
+        {
+          name: "address_street",
+          label: "Street Address (optional)",
+          value: "",
+          placeholder: "e.g. 123 College Ave",
+        },
+        {
+          name: "address_state",
+          label: "State (optional)",
+          value: "",
+          placeholder: "e.g. NJ",
+        },
+        {
+          name: "address_zip",
+          label: "Zip Code (optional)",
+          value: "",
+          placeholder: "e.g. 08854",
+        }
       );
     }
     return fields;
@@ -510,7 +593,10 @@ function Profile() {
           <InfoRow label="Email" value={email} />
           <InfoRow label="Phone" value={profile?.phone_number} />
           <InfoRow label="Date of Birth" value={profile?.dob} />
-          <InfoRow label="Resume" value={hasResume ? "Uploaded" : "Not uploaded"} />
+          <InfoRow
+            label="Resume"
+            value={hasResume ? "Uploaded" : "Not uploaded"}
+          />
         </div>
       </div>
 
@@ -525,7 +611,9 @@ function Profile() {
         {profile?.summary ? (
           <p style={styles.summaryText}>{profile.summary}</p>
         ) : (
-          <p style={{ color: "#aaa", fontSize: "14px" }}>No summary added yet.</p>
+          <p style={{ color: "#aaa", fontSize: "14px" }}>
+            No summary added yet.
+          </p>
         )}
       </div>
 
@@ -538,7 +626,9 @@ function Profile() {
               <li key={f.label} style={styles.missingItem}>
                 {f.label} —{" "}
                 <span style={{ color: "#888" }}>
-                  {f.label === "Resume" ? "upload via Document Library" : "update above"}
+                  {f.label === "Resume"
+                    ? "upload via Document Library"
+                    : "update above"}
                 </span>
               </li>
             ))}
@@ -552,7 +642,10 @@ function Profile() {
           <h2 style={styles.cardTitle}>Experience</h2>
           <button
             style={styles.addBtn}
-            onClick={() => { setActiveRecord(null); setSectionModal("add-experience"); }}
+            onClick={() => {
+              setActiveRecord(null);
+              setSectionModal("add-experience");
+            }}
           >
             + Add
           </button>
@@ -562,7 +655,14 @@ function Profile() {
         ) : (
           experiences.map((exp, index) => (
             <div key={exp.experience_id} style={styles.itemRow}>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", flexShrink: 0 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "6px",
+                  flexShrink: 0,
+                }}
+              >
                 <button
                   style={styles.reorderBtn}
                   onClick={() => moveExperience(index, -1)}
@@ -596,13 +696,21 @@ function Profile() {
               <div style={styles.itemActions}>
                 <button
                   style={styles.editBtn}
-                  onClick={() => { setActiveRecord(exp); setSectionModal("edit-experience"); }}
+                  onClick={() => {
+                    setActiveRecord(exp);
+                    setSectionModal("edit-experience");
+                  }}
                 >
                   Edit
                 </button>
                 <button
                   style={styles.deleteBtn}
-                  onClick={() => setDeleteTarget({ type: "experience", id: exp.experience_id })}
+                  onClick={() =>
+                    setDeleteTarget({
+                      type: "experience",
+                      id: exp.experience_id,
+                    })
+                  }
                 >
                   Delete
                 </button>
@@ -621,7 +729,10 @@ function Profile() {
           <h2 style={styles.cardTitle}>Education</h2>
           <button
             style={styles.addBtn}
-            onClick={() => { setActiveRecord(null); setSectionModal("add-education"); }}
+            onClick={() => {
+              setActiveRecord(null);
+              setSectionModal("add-education");
+            }}
           >
             + Add
           </button>
@@ -636,20 +747,26 @@ function Profile() {
                   {edu.degree} in {edu.field_of_study}
                 </p>
                 <p style={styles.itemSecondary}>
-                  {edu.school_or_college} · {edu.start_date}–{edu.end_date || "Present"}
+                  {edu.school_or_college} · {edu.start_date}–
+                  {edu.end_date || "Present"}
                   {edu.gpa ? ` · GPA: ${edu.gpa}` : ""}
                 </p>
               </div>
               <div style={styles.itemActions}>
                 <button
                   style={styles.editBtn}
-                  onClick={() => { setActiveRecord(edu); setSectionModal("edit-education"); }}
+                  onClick={() => {
+                    setActiveRecord(edu);
+                    setSectionModal("edit-education");
+                  }}
                 >
                   Edit
                 </button>
                 <button
                   style={styles.deleteBtn}
-                  onClick={() => setDeleteTarget({ type: "education", id: edu.education_id })}
+                  onClick={() =>
+                    setDeleteTarget({ type: "education", id: edu.education_id })
+                  }
                 >
                   Delete
                 </button>
@@ -668,7 +785,10 @@ function Profile() {
           <h2 style={styles.cardTitle}>Skills</h2>
           <button
             style={styles.addBtn}
-            onClick={() => { setActiveRecord(null); setSectionModal("add-skill"); }}
+            onClick={() => {
+              setActiveRecord(null);
+              setSectionModal("add-skill");
+            }}
           >
             + Add
           </button>
@@ -688,13 +808,18 @@ function Profile() {
               <div style={styles.itemActions}>
                 <button
                   style={styles.editBtn}
-                  onClick={() => { setActiveRecord(skill); setSectionModal("edit-skill"); }}
+                  onClick={() => {
+                    setActiveRecord(skill);
+                    setSectionModal("edit-skill");
+                  }}
                 >
                   Edit
                 </button>
                 <button
                   style={styles.deleteBtn}
-                  onClick={() => setDeleteTarget({ type: "skill", id: skill.skill_id })}
+                  onClick={() =>
+                    setDeleteTarget({ type: "skill", id: skill.skill_id })
+                  }
                 >
                   Delete
                 </button>
@@ -711,14 +836,20 @@ function Profile() {
       <div style={styles.card}>
         <div style={styles.cardHeader}>
           <h2 style={styles.cardTitle}>Career Preferences</h2>
-          <button style={styles.editBtn} onClick={() => setSectionModal("edit-career")}>
+          <button
+            style={styles.editBtn}
+            onClick={() => setSectionModal("edit-career")}
+          >
             Edit
           </button>
         </div>
         {careerPrefs ? (
           <div style={styles.summaryGrid}>
             <InfoRow label="Target Roles" value={careerPrefs.target_roles} />
-            <InfoRow label="Location" value={careerPrefs.location_preferences} />
+            <InfoRow
+              label="Location"
+              value={careerPrefs.location_preferences}
+            />
             <InfoRow label="Work Mode" value={careerPrefs.work_mode} />
             <InfoRow label="Salary" value={careerPrefs.salary_preference} />
           </div>
@@ -737,10 +868,28 @@ function Profile() {
         <EditModal
           title="Edit Profile Info"
           fields={[
-            { name: "first_name", label: "First Name", value: profile?.first_name || "" },
-            { name: "last_name", label: "Last Name", value: profile?.last_name || "" },
-            { name: "phone_number", label: "Phone Number", value: profile?.phone_number || "", placeholder: "e.g. 201-555-0101 or +1 (555) 555-0100" },
-            { name: "dob", label: "Date of Birth", value: profile?.dob || "", type: "date" },
+            {
+              name: "first_name",
+              label: "First Name",
+              value: profile?.first_name || "",
+            },
+            {
+              name: "last_name",
+              label: "Last Name",
+              value: profile?.last_name || "",
+            },
+            {
+              name: "phone_number",
+              label: "Phone Number",
+              value: profile?.phone_number || "",
+              placeholder: "e.g. 201-555-0101 or +1 (555) 555-0100",
+            },
+            {
+              name: "dob",
+              label: "Date of Birth",
+              value: profile?.dob || "",
+              type: "date",
+            },
           ]}
           onSave={saveProfile}
           onCancel={() => setModal(null)}
@@ -752,7 +901,13 @@ function Profile() {
         <EditModal
           title="Edit About"
           fields={[
-            { name: "summary", label: "Summary", value: profile?.summary || "", type: "textarea", placeholder: "Tell us about yourself…" },
+            {
+              name: "summary",
+              label: "Summary",
+              value: profile?.summary || "",
+              type: "textarea",
+              placeholder: "Tell us about yourself…",
+            },
           ]}
           onSave={saveProfile}
           onCancel={() => setModal(null)}
@@ -760,28 +915,70 @@ function Profile() {
       )}
 
       {/* Experience add / edit */}
-      {(sectionModal === "add-experience" || sectionModal === "edit-experience") && (
+      {(sectionModal === "add-experience" ||
+        sectionModal === "edit-experience") && (
         <EditModal
-          title={sectionModal === "add-experience" ? "Add Experience" : "Edit Experience"}
+          title={
+            sectionModal === "add-experience"
+              ? "Add Experience"
+              : "Edit Experience"
+          }
           fields={[
-            { name: "company",     label: "Company",                    value: activeRecord?.company || "",     placeholder: "e.g. Google" },
-            { name: "title",       label: "Job Title",                  value: activeRecord?.title || "",       placeholder: "e.g. Software Engineer" },
-            { name: "start_date",  label: "Start Date",                 value: activeRecord?.start_date || "",  type: "date" },
-            { name: "end_date",    label: "End Date (blank = current)", value: activeRecord?.end_date || "",    type: "date" },
-            { name: "description", label: "Description (optional)",     value: activeRecord?.description || "", type: "textarea", placeholder: "Responsibilities, achievements…" },
+            {
+              name: "company",
+              label: "Company",
+              value: activeRecord?.company || "",
+              placeholder: "e.g. Google",
+            },
+            {
+              name: "title",
+              label: "Job Title",
+              value: activeRecord?.title || "",
+              placeholder: "e.g. Software Engineer",
+            },
+            {
+              name: "start_date",
+              label: "Start Date",
+              value: activeRecord?.start_date || "",
+              type: "date",
+            },
+            {
+              name: "end_date",
+              label: "End Date (blank = current)",
+              value: activeRecord?.end_date || "",
+              type: "date",
+            },
+            {
+              name: "description",
+              label: "Description (optional)",
+              value: activeRecord?.description || "",
+              type: "textarea",
+              placeholder: "Responsibilities, achievements…",
+            },
           ]}
           onSave={saveExperience}
-          onCancel={() => { setSectionModal(null); setActiveRecord(null); }}
+          onCancel={() => {
+            setSectionModal(null);
+            setActiveRecord(null);
+          }}
         />
       )}
 
       {/* Education add / edit */}
-      {(sectionModal === "add-education" || sectionModal === "edit-education") && (
+      {(sectionModal === "add-education" ||
+        sectionModal === "edit-education") && (
         <EditModal
-          title={sectionModal === "add-education" ? "Add Education" : "Edit Education"}
+          title={
+            sectionModal === "add-education"
+              ? "Add Education"
+              : "Edit Education"
+          }
           fields={educationModalFields()}
           onSave={saveEducation}
-          onCancel={() => { setSectionModal(null); setActiveRecord(null); }}
+          onCancel={() => {
+            setSectionModal(null);
+            setActiveRecord(null);
+          }}
         />
       )}
 
@@ -790,12 +987,30 @@ function Profile() {
         <EditModal
           title={sectionModal === "add-skill" ? "Add Skill" : "Edit Skill"}
           fields={[
-            { name: "name", label: "Skill Name", value: activeRecord?.name || "", placeholder: "e.g. Python" },
-            { name: "category", label: "Category (optional)", value: activeRecord?.category || "", placeholder: "e.g. Backend, Frontend" },
-            { name: "proficiency", label: "Proficiency (optional)", value: activeRecord?.proficiency || "", placeholder: "e.g. Advanced, Intermediate" },
+            {
+              name: "name",
+              label: "Skill Name",
+              value: activeRecord?.name || "",
+              placeholder: "e.g. Python",
+            },
+            {
+              name: "category",
+              label: "Category (optional)",
+              value: activeRecord?.category || "",
+              placeholder: "e.g. Backend, Frontend",
+            },
+            {
+              name: "proficiency",
+              label: "Proficiency (optional)",
+              value: activeRecord?.proficiency || "",
+              placeholder: "e.g. Advanced, Intermediate",
+            },
           ]}
           onSave={saveSkill}
-          onCancel={() => { setSectionModal(null); setActiveRecord(null); }}
+          onCancel={() => {
+            setSectionModal(null);
+            setActiveRecord(null);
+          }}
         />
       )}
 
@@ -804,10 +1019,30 @@ function Profile() {
         <EditModal
           title="Edit Career Preferences"
           fields={[
-            { name: "target_roles", label: "Target Roles", value: careerPrefs?.target_roles || "", placeholder: "e.g. Software Engineer, Backend Developer" },
-            { name: "location_preferences", label: "Location Preferences", value: careerPrefs?.location_preferences || "", placeholder: "e.g. New York, Remote" },
-            { name: "work_mode", label: "Work Mode", value: careerPrefs?.work_mode || "", placeholder: "e.g. Hybrid, Remote, On-site" },
-            { name: "salary_preference", label: "Salary Preference", value: careerPrefs?.salary_preference || "", placeholder: "e.g. $90,000+" },
+            {
+              name: "target_roles",
+              label: "Target Roles",
+              value: careerPrefs?.target_roles || "",
+              placeholder: "e.g. Software Engineer, Backend Developer",
+            },
+            {
+              name: "location_preferences",
+              label: "Location Preferences",
+              value: careerPrefs?.location_preferences || "",
+              placeholder: "e.g. New York, Remote",
+            },
+            {
+              name: "work_mode",
+              label: "Work Mode",
+              value: careerPrefs?.work_mode || "",
+              placeholder: "e.g. Hybrid, Remote, On-site",
+            },
+            {
+              name: "salary_preference",
+              label: "Salary Preference",
+              value: careerPrefs?.salary_preference || "",
+              placeholder: "e.g. $90,000+",
+            },
           ]}
           onSave={saveCareerPrefs}
           onCancel={() => setSectionModal(null)}
@@ -818,20 +1053,26 @@ function Profile() {
       <DeleteConfirmModal
         isOpen={!!deleteTarget}
         title={
-          deleteTarget?.type === "experience" ? "Delete experience entry?" :
-          deleteTarget?.type === "education"  ? "Delete education record?" :
-                                                "Delete skill?"
+          deleteTarget?.type === "experience"
+            ? "Delete experience entry?"
+            : deleteTarget?.type === "education"
+              ? "Delete education record?"
+              : "Delete skill?"
         }
         message={
-          deleteTarget?.type === "experience" ? "This experience entry will be permanently removed." :
-          deleteTarget?.type === "education"  ? "This education record will be permanently removed." :
-                                                "This skill will be permanently removed."
+          deleteTarget?.type === "experience"
+            ? "This experience entry will be permanently removed."
+            : deleteTarget?.type === "education"
+              ? "This education record will be permanently removed."
+              : "This skill will be permanently removed."
         }
         onCancel={() => setDeleteTarget(null)}
         onConfirm={
-          deleteTarget?.type === "experience" ? confirmDeleteExperience :
-          deleteTarget?.type === "education"  ? confirmDeleteEducation  :
-                                                confirmDeleteSkill
+          deleteTarget?.type === "experience"
+            ? confirmDeleteExperience
+            : deleteTarget?.type === "education"
+              ? confirmDeleteEducation
+              : confirmDeleteSkill
         }
         isDeleting={isDeleting}
       />
@@ -860,7 +1101,12 @@ const styles = {
   title: { fontSize: "32px", marginBottom: "8px" },
   subtitle: { color: "#555", marginBottom: "24px" },
   status: { color: "green", fontSize: "14px", marginBottom: "12px" },
-  sectionStatus: { color: "green", fontSize: "13px", marginTop: "8px", marginBottom: 0 },
+  sectionStatus: {
+    color: "green",
+    fontSize: "13px",
+    marginTop: "8px",
+    marginBottom: 0,
+  },
   card: {
     backgroundColor: "#fff",
     border: "1px solid #ddd",
@@ -921,7 +1167,12 @@ const styles = {
     borderBottom: "1px solid #f0f0f0",
   },
   itemInfo: { flex: 1, marginRight: "12px" },
-  itemPrimary: { margin: 0, fontSize: "15px", fontWeight: "600", color: "#222" },
+  itemPrimary: {
+    margin: 0,
+    fontSize: "15px",
+    fontWeight: "600",
+    color: "#222",
+  },
   itemSecondary: { margin: "3px 0 0", fontSize: "13px", color: "#666" },
   itemActions: { display: "flex", gap: "8px", flexShrink: 0 },
   percentageText: { fontSize: "24px", fontWeight: "700", color: "#333" },

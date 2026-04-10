@@ -129,7 +129,10 @@ function ApplicationCard({ app, position, onRemove }) {
   const [showFollowUps, setShowFollowUps] = useState(false);
   const [followUps, setFollowUps] = useState([]);
   const [followUpsLoaded, setFollowUpsLoaded] = useState(false);
-  const [newFollowUp, setNewFollowUp] = useState({ description: "", due_date: "" });
+  const [newFollowUp, setNewFollowUp] = useState({
+    description: "",
+    due_date: "",
+  });
   const [addingFollowUp, setAddingFollowUp] = useState(false);
   const [followUpError, setFollowUpError] = useState("");
 
@@ -290,7 +293,9 @@ I am eager to bring my motivation, adaptability, and willingness to learn to you
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
-        setFollowUps((prev) => prev.filter((f) => f.followup_id !== followup_id));
+        setFollowUps((prev) =>
+          prev.filter((f) => f.followup_id !== followup_id)
+        );
       }
     } catch {
       // silently fail
@@ -360,7 +365,9 @@ I am eager to bring my motivation, adaptability, and willingness to learn to you
                   <span className="details-label">Deadline</span>
                   <span className="details-value">
                     {detailValues.deadline
-                      ? new Date(detailValues.deadline + "T00:00:00").toLocaleDateString()
+                      ? new Date(
+                          detailValues.deadline + "T00:00:00"
+                        ).toLocaleDateString()
                       : "—"}
                   </span>
                 </div>
@@ -388,20 +395,34 @@ I am eager to bring my motivation, adaptability, and willingness to learn to you
                   className="details-input"
                   value={detailValues.deadline}
                   onChange={(e) =>
-                    setDetailValues((prev) => ({ ...prev, deadline: e.target.value }))
+                    setDetailValues((prev) => ({
+                      ...prev,
+                      deadline: e.target.value,
+                    }))
                   }
                 />
-                <label className="details-label">Recruiter / Contact Notes</label>
+                <label className="details-label">
+                  Recruiter / Contact Notes
+                </label>
                 <textarea
                   className="details-textarea"
                   value={detailValues.recruiter_notes}
                   onChange={(e) =>
-                    setDetailValues((prev) => ({ ...prev, recruiter_notes: e.target.value }))
+                    setDetailValues((prev) => ({
+                      ...prev,
+                      recruiter_notes: e.target.value,
+                    }))
                   }
                   rows={3}
                 />
                 {detailError && (
-                  <p style={{ color: "#ef4444", fontSize: "13px", margin: "4px 0" }}>
+                  <p
+                    style={{
+                      color: "#ef4444",
+                      fontSize: "13px",
+                      margin: "4px 0",
+                    }}
+                  >
                     {detailError}
                   </p>
                 )}
@@ -431,7 +452,10 @@ I am eager to bring my motivation, adaptability, and willingness to learn to you
 
       {/* S2-012 — Follow-Up & Reminder Tracking */}
       <div className="followup-section">
-        <button className="app-history-btn followup-toggle" onClick={loadFollowUps}>
+        <button
+          className="app-history-btn followup-toggle"
+          onClick={loadFollowUps}
+        >
           Follow-Ups{followUps.length > 0 ? ` (${followUps.length})` : ""}{" "}
           {showFollowUps ? "▾" : "▸"}
         </button>
@@ -449,12 +473,20 @@ I am eager to bring my motivation, adaptability, and willingness to learn to you
                       onChange={() => toggleComplete(fu)}
                       className="followup-checkbox"
                     />
-                    <span className={fu.completed ? "followup-desc followup-done" : "followup-desc"}>
+                    <span
+                      className={
+                        fu.completed
+                          ? "followup-desc followup-done"
+                          : "followup-desc"
+                      }
+                    >
                       {fu.description}
                     </span>
                     {fu.due_date && (
                       <span className="followup-date">
-                        {new Date(fu.due_date + "T00:00:00").toLocaleDateString()}
+                        {new Date(
+                          fu.due_date + "T00:00:00"
+                        ).toLocaleDateString()}
                       </span>
                     )}
                     <button
@@ -476,7 +508,10 @@ I am eager to bring my motivation, adaptability, and willingness to learn to you
                   placeholder="Description (required)"
                   value={newFollowUp.description}
                   onChange={(e) =>
-                    setNewFollowUp((prev) => ({ ...prev, description: e.target.value }))
+                    setNewFollowUp((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
                   }
                 />
                 <input
@@ -484,11 +519,20 @@ I am eager to bring my motivation, adaptability, and willingness to learn to you
                   className="followup-input"
                   value={newFollowUp.due_date}
                   onChange={(e) =>
-                    setNewFollowUp((prev) => ({ ...prev, due_date: e.target.value }))
+                    setNewFollowUp((prev) => ({
+                      ...prev,
+                      due_date: e.target.value,
+                    }))
                   }
                 />
                 {followUpError && (
-                  <p style={{ color: "#ef4444", fontSize: "13px", margin: "4px 0" }}>
+                  <p
+                    style={{
+                      color: "#ef4444",
+                      fontSize: "13px",
+                      margin: "4px 0",
+                    }}
+                  >
                     {followUpError}
                   </p>
                 )}
@@ -569,7 +613,13 @@ I am eager to bring my motivation, adaptability, and willingness to learn to you
               ))}
             </ul>
           ) : (
-            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: "4px 0 0" }}>
+            <p
+              style={{
+                color: "var(--text-muted)",
+                fontSize: "0.85rem",
+                margin: "4px 0 0",
+              }}
+            >
               No history yet.
             </p>
           )}

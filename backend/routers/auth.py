@@ -241,7 +241,9 @@ def recruiter_login(
         .first()
     )
 
-    if not db_creds or not verify_password(form_data.password, db_creds.hashed_password):
+    if not db_creds or not verify_password(
+        form_data.password, db_creds.hashed_password
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
