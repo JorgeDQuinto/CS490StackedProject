@@ -24,44 +24,6 @@ const STATUS_COLOR = {
   Withdrawn: "#374151",
 };
 
-const MOCK_APPLICATIONS = [
-  {
-    job_id: 101,
-    position_id: 1,
-    application_status: "Applied",
-    application_date: "2026-04-01",
-    years_of_experience: 1,
-  },
-  {
-    job_id: 102,
-    position_id: 2,
-    application_status: "Interview",
-    application_date: "2026-04-03",
-    years_of_experience: 2,
-  },
-  {
-    job_id: 103,
-    position_id: 3,
-    application_status: "Offer",
-    application_date: "2026-04-05",
-    years_of_experience: 1,
-  },
-  {
-    job_id: 104,
-    position_id: 4,
-    application_status: "Rejected",
-    application_date: "2026-04-02",
-    years_of_experience: 3,
-  },
-];
-
-const MOCK_POSITIONS = {
-  1: { title: "Frontend Developer Intern", company_name: "Google" },
-  2: { title: "Software Engineer Intern", company_name: "Microsoft" },
-  3: { title: "UX Engineer Intern", company_name: "Spotify" },
-  4: { title: "Product Analyst Intern", company_name: "Amazon" },
-};
-
 function Pipeline({ current }) {
   const isTerminal = current === "Rejected" || current === "Archived";
   const active = isTerminal ? STAGES.slice(0, 4) : STAGES.slice(0, 5);
@@ -112,19 +74,31 @@ function ApplicationCard({ app, position, onRemove, onStageChange }) {
     const previousStage = app.application_status;
     setUpdatingStage(true);
     onStageChange(app.job_id, newStage);
-    const res = await fetch(`${API}/jobs/applications/${app.job_id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ application_status: newStage }),
-    });
-    if (!res.ok) {
+    try {
+      const res = await fetch(`${API}/jobs/applications/${app.job_id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ application_status: newStage }),
+      });
+      if (!res.ok) {
+        const detail = await res.text();
+        console.error(
+          `Stage change failed (${res.status}) for job ${app.job_id}:`,
+          detail
+        );
+        onStageChange(app.job_id, previousStage);
+      } else {
+        setActivity(null);
+      }
+    } catch (err) {
+      console.error("Stage change request errored:", err);
       onStageChange(app.job_id, previousStage);
+    } finally {
+      setUpdatingStage(false);
     }
-    setActivity(null);
-    setUpdatingStage(false);
   };
 
   const loadActivity = async () => {
@@ -149,6 +123,7 @@ function ApplicationCard({ app, position, onRemove, onStageChange }) {
   };
 
   const title = position?.title || `Position #${app.position_id}`;
+  const company = position?.company_name;
 
   return (
     <div
@@ -172,6 +147,7 @@ function ApplicationCard({ app, position, onRemove, onStageChange }) {
       <div className="app-card-header">
         <div className="app-card-info">
           <h3 className="app-card-title">{title}</h3>
+          {company && <span className="app-card-company">{company}</span>}
           <span className="app-card-meta">Applied {app.application_date}</span>
           <span className="app-card-meta">
             {app.years_of_experience} yr{app.years_of_experience !== 1 ? "s" : ""}{" "}
@@ -229,6 +205,71 @@ function ApplicationCard({ app, position, onRemove, onStageChange }) {
   );
 }
 
+function HistoryOverlay({ applications, positions, onClose }) {
+  const [allActivity, setAllActivity] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+  const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    const loadAll = async () => {
+      const results = [];
+      await Promise.all(
+        applications.map(async (app) => {
+          try {
+            const res = await fetch(`${API}/jobs/applications/${app.job_id}/activity`, {
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            if (res.ok) {
+              const activities = await res.json();
+              const pos = positions[app.position_id];
+              const title = pos?.title || `Position #${app.position_id}`;
+              activities.forEach((a) => results.push({ ...a, jobTitle: title }));
+            }
+          } catch {
+            /* skip */
+          }
+        })
+      );
+      results.sort((a, b) => new Date(b.changed_at) - new Date(a.changed_at));
+      setAllActivity(results);
+      setLoadingHistory(false);
+    };
+    loadAll();
+  }, [applications, positions, token]);
+
+  return (
+    <div className="history-overlay" onClick={onClose}>
+      <div className="history-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="history-close-btn" onClick={onClose}>
+          &times;
+        </button>
+        <h2 className="history-modal-title">Application History</h2>
+        {loadingHistory ? (
+          <p className="applications-placeholder">Loading history...</p>
+        ) : allActivity.length === 0 ? (
+          <p className="applications-placeholder">No activity recorded yet.</p>
+        ) : (
+          <ul className="app-activity-list">
+            {allActivity.map((a, i) => (
+              <li key={`${a.activity_id}-${i}`} className="history-item">
+                <span
+                  className="app-activity-dot"
+                  style={{ backgroundColor: STATUS_COLOR[a.stage] || "#888" }}
+                />
+                <span className="history-job-title">{a.jobTitle}</span>
+                <span className="app-activity-stage">{a.stage}</span>
+                <span className="app-activity-date">
+                  {new Date(a.changed_at).toLocaleString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Applications() {
   const [applications, setApplications] = useState([]);
   const [positions, setPositions] = useState({});
@@ -238,6 +279,7 @@ function Applications() {
   const [search, setSearch] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const token = localStorage.getItem("token");
 
   useEffect(() => {
@@ -248,26 +290,19 @@ function Applications() {
         });
 
         if (!res.ok) {
-          setApplications(MOCK_APPLICATIONS);
-          setPositions(MOCK_POSITIONS);
-          setError("");
+          const detail = await res.text();
+          console.error(`Dashboard load failed (${res.status}):`, detail);
+          setApplications([]);
+          setPositions({});
+          setError("Could not load applications. Please sign in again.");
           setLoading(false);
           return;
         }
 
         const apps = await res.json();
+        setApplications(apps || []);
 
-        if (!apps || apps.length === 0) {
-          setApplications(MOCK_APPLICATIONS);
-          setPositions(MOCK_POSITIONS);
-          setError("");
-          setLoading(false);
-          return;
-        }
-
-        setApplications(apps);
-
-        const uniqueIds = [...new Set(apps.map((a) => a.position_id))];
+        const uniqueIds = [...new Set((apps || []).map((a) => a.position_id))];
         const posMap = {};
 
         await Promise.all(
@@ -280,11 +315,13 @@ function Applications() {
         );
 
         setPositions(posMap);
+        setError("");
         setLoading(false);
       } catch (err) {
-        setApplications(MOCK_APPLICATIONS);
-        setPositions(MOCK_POSITIONS);
-        setError("");
+        console.error("Dashboard load errored:", err);
+        setApplications([]);
+        setPositions({});
+        setError("Could not reach the server.");
         setLoading(false);
       }
     };
@@ -344,7 +381,20 @@ function Applications() {
         isDeleting={isDeleting}
       />
 
-      <h1>My Applications</h1>
+      {showHistory && (
+        <HistoryOverlay
+          applications={applications}
+          positions={positions}
+          onClose={() => setShowHistory(false)}
+        />
+      )}
+
+      <div className="app-page-header">
+        <h1>My Applications</h1>
+        <button className="app-history-global-btn" onClick={() => setShowHistory(true)}>
+          History
+        </button>
+      </div>
 
       {error && <p className="applications-error">{error}</p>}
 
@@ -360,6 +410,20 @@ function Applications() {
                 className="app-search"
               />
 
+              <select
+                className="app-filter-dropdown"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+              >
+                <option value="All">Filter: All</option>
+                {STAGES.map((s) => (
+                  <option key={s} value={s}>
+                    {s} ({applications.filter((a) => a.application_status === s).length}
+                    )
+                  </option>
+                ))}
+              </select>
+
               <button
                 type="button"
                 className="app-clear-btn"
@@ -371,23 +435,6 @@ function Applications() {
               >
                 Clear
               </button>
-            </div>
-
-            <div className="app-filters">
-              {["All", ...STAGES].map((s) => (
-                <button
-                  key={s}
-                  className={`app-filter-btn ${filter === s ? "app-filter-btn-active" : ""}`}
-                  onClick={() => setFilter(s)}
-                >
-                  {s}
-                  {s !== "All" && (
-                    <span className="app-filter-count">
-                      {applications.filter((a) => a.application_status === s).length}
-                    </span>
-                  )}
-                </button>
-              ))}
             </div>
           </div>
 
