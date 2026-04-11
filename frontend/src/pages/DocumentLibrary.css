@@ -204,12 +204,14 @@
   flex: 1;
   padding: 1.5rem;
   border: none;
-  resize: vertical;
+  resize: none;
   font-family: "Monaco", "Courier New", monospace;
   font-size: 0.95rem;
   background-color: var(--surface-2);
   color: var(--text);
   line-height: 1.5;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .doclibrary-viewer {
