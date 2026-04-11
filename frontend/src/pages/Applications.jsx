@@ -811,9 +811,10 @@ function Applications() {
         }
 
         const apps = await res.json();
-        setApplications(apps || []);
+        const safeApps = apps || [];
+        setApplications(safeApps);
 
-        const uniqueIds = [...new Set((apps || []).map((a) => a.position_id))];
+        const uniqueIds = [...new Set(safeApps.map((a) => a.position_id))];
         const posMap = {};
 
         await Promise.all(
