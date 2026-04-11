@@ -641,14 +641,17 @@ I am eager to bring my motivation, adaptability, and willingness to learn to you
   );
 }
 
-function HistoryOverlay({ applications, positions, onClose }) {
+function HistoryOverlay({ applications, positions, onClose, onRestore }) {
   const [allActivity, setAllActivity] = useState([]);
+  const [activityByJob, setActivityByJob] = useState({});
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [restoringJobId, setRestoringJobId] = useState(null);
   const token = localStorage.getItem("token");
 
   useEffect(() => {
     const loadAll = async () => {
       const results = [];
+      const byJob = {};
       await Promise.all(
         applications.map(async (app) => {
           try {
@@ -662,8 +665,9 @@ function HistoryOverlay({ applications, positions, onClose }) {
               const activities = await res.json();
               const pos = positions[app.position_id];
               const title = pos?.title || `Position #${app.position_id}`;
+              byJob[app.job_id] = activities;
               activities.forEach((a) =>
-                results.push({ ...a, jobTitle: title })
+                results.push({ ...a, jobTitle: title, job_id: app.job_id })
               );
             }
           } catch {
@@ -673,10 +677,54 @@ function HistoryOverlay({ applications, positions, onClose }) {
       );
       results.sort((a, b) => new Date(b.changed_at) - new Date(a.changed_at));
       setAllActivity(results);
+      setActivityByJob(byJob);
       setLoadingHistory(false);
     };
     loadAll();
   }, [applications, positions, token]);
+
+  // A job is "restorable" from history if it's currently Archived. The current
+  // state is looked up by job_id so the button appears next to the Archived
+  // timeline entry regardless of which stage-change row the user is looking at.
+  const currentStatusById = Object.fromEntries(
+    applications.map((a) => [a.job_id, a.application_status])
+  );
+
+  const handleRestore = async (jobId) => {
+    setRestoringJobId(jobId);
+    const history = activityByJob[jobId] || [];
+    const sorted = [...history].sort(
+      (a, b) => new Date(b.changed_at) - new Date(a.changed_at)
+    );
+    const previous = sorted.find(
+      (h) => h.stage && h.stage !== "Archived" && h.stage !== "Withdrawn"
+    );
+    const targetStage = previous?.stage || "Applied";
+
+    try {
+      const res = await fetch(`${API}/jobs/applications/${jobId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ application_status: targetStage }),
+      });
+      if (!res.ok) {
+        const detail = await res.text();
+        console.error(
+          `Restore failed (${res.status}) for job ${jobId}:`,
+          detail
+        );
+        return;
+      }
+      onRestore(jobId, targetStage);
+    } catch (err) {
+      console.error("Restore request errored:", err);
+    } finally {
+      setRestoringJobId(null);
+    }
+  };
 
   return (
     <div className="history-overlay" onClick={onClose}>
@@ -685,25 +733,47 @@ function HistoryOverlay({ applications, positions, onClose }) {
           &times;
         </button>
         <h2 className="history-modal-title">Application History</h2>
+
+        <h3 className="history-section-title">Activity Timeline</h3>
         {loadingHistory ? (
           <p className="applications-placeholder">Loading history...</p>
         ) : allActivity.length === 0 ? (
           <p className="applications-placeholder">No activity recorded yet.</p>
         ) : (
           <ul className="app-activity-list">
-            {allActivity.map((a, i) => (
-              <li key={`${a.activity_id}-${i}`} className="history-item">
-                <span
-                  className="app-activity-dot"
-                  style={{ backgroundColor: STATUS_COLOR[a.stage] || "#888" }}
-                />
-                <span className="history-job-title">{a.jobTitle}</span>
-                <span className="app-activity-stage">{a.stage}</span>
-                <span className="app-activity-date">
-                  {new Date(a.changed_at).toLocaleString()}
-                </span>
-              </li>
-            ))}
+            {allActivity.map((a, i) => {
+              const isArchivedEntry = a.stage === "Archived";
+              const isWithdrawnEntry = a.stage === "Withdrawn";
+              const isCurrentlyArchived =
+                currentStatusById[a.job_id] === "Archived";
+              const isCurrentlyWithdrawn =
+                currentStatusById[a.job_id] === "Withdrawn";
+              const showRestore =
+                (isArchivedEntry && isCurrentlyArchived) ||
+                (isWithdrawnEntry && isCurrentlyWithdrawn);
+              return (
+                <li key={`${a.activity_id}-${i}`} className="history-item">
+                  <span
+                    className="app-activity-dot"
+                    style={{ backgroundColor: STATUS_COLOR[a.stage] || "#888" }}
+                  />
+                  <span className="history-job-title">{a.jobTitle}</span>
+                  <span className="app-activity-stage">{a.stage}</span>
+                  <span className="app-activity-date">
+                    {new Date(a.changed_at).toLocaleString()}
+                  </span>
+                  {showRestore && (
+                    <button
+                      className="app-history-btn history-restore-btn"
+                      disabled={restoringJobId === a.job_id}
+                      onClick={() => handleRestore(a.job_id)}
+                    >
+                      {restoringJobId === a.job_id ? "Restoring…" : "Restore"}
+                    </button>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -773,7 +843,8 @@ function Applications() {
   const filtered = applications.filter((a) => {
     const matchesStage =
       filter === "All"
-        ? a.application_status !== "Withdrawn"
+        ? a.application_status !== "Withdrawn" &&
+          a.application_status !== "Archived"
         : a.application_status === filter;
 
     const positionTitle = positions[a.position_id]?.title || "";
@@ -793,16 +864,29 @@ function Applications() {
 
     try {
       setIsDeleting(true);
-      await fetch(`${API}/jobs/applications/${deleteTarget.job_id}`, {
-        method: "DELETE",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      }).catch(() => {});
-      setApplications((prev) =>
-        prev.filter((a) => a.job_id !== deleteTarget.job_id)
+      const res = await fetch(
+        `${API}/jobs/applications/${deleteTarget.job_id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ application_status: "Withdrawn" }),
+        }
       );
+      if (res.ok) {
+        setApplications((prev) =>
+          prev.map((a) =>
+            a.job_id === deleteTarget.job_id
+              ? { ...a, application_status: "Withdrawn" }
+              : a
+          )
+        );
+      }
       setDeleteTarget(null);
     } catch (err) {
-      console.error("Failed to delete application:", err);
+      console.error("Failed to remove application:", err);
     } finally {
       setIsDeleting(false);
     }
@@ -830,6 +914,13 @@ function Applications() {
           applications={applications}
           positions={positions}
           onClose={() => setShowHistory(false)}
+          onRestore={(id, newStage) =>
+            setApplications((prev) =>
+              prev.map((a) =>
+                a.job_id === id ? { ...a, application_status: newStage } : a
+              )
+            )
+          }
         />
       )}
 
