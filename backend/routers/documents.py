@@ -1,7 +1,11 @@
 import os
+import base64
+from io import BytesIO
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
+from PyPDF2 import PdfReader
+from docx import Document as DocxDocument
 
 from database import get_db
 from database.auth import get_current_user
@@ -16,6 +20,100 @@ router = APIRouter()
 _ROUTERS_DIR = os.path.dirname(os.path.abspath(__file__))
 _BACKEND_DIR = os.path.dirname(_ROUTERS_DIR)
 UPLOAD_BASE = os.path.join(_BACKEND_DIR, "uploads")
+
+
+def _extract_pdf_content(file_path: str) -> str:
+    """Extract text content from a PDF file."""
+    try:
+        with open(file_path, "rb") as f:
+            pdf_reader = PdfReader(f)
+            text = ""
+            for page in pdf_reader.pages:
+                text += page.extract_text() + "\n"
+            return text.strip()
+    except Exception as e:
+        raise ValueError(f"Failed to extract PDF content: {str(e)}")
+
+
+def _extract_docx_content(file_path: str) -> str:
+    """Extract text content from a DOCX file."""
+    try:
+        doc = DocxDocument(file_path)
+        text = ""
+        for paragraph in doc.paragraphs:
+            text += paragraph.text + "\n"
+        return text.strip()
+    except Exception as e:
+        raise ValueError(f"Failed to extract DOCX content: {str(e)}")
+
+
+def _write_docx_content(file_path: str, content: str) -> None:
+    """Write text content to a DOCX file."""
+    try:
+        doc = DocxDocument()
+        # Split content by newlines and add as paragraphs
+        for line in content.split("\n"):
+            doc.add_paragraph(line)
+        doc.save(file_path)
+    except Exception as e:
+        raise ValueError(f"Failed to write DOCX content: {str(e)}")
+
+
+def _update_file_content(file_path: str, filename: str, content: str) -> None:
+    """Update file content based on file extension."""
+    ext = os.path.splitext(filename)[1].lower()
+    
+    if ext == ".txt" or ext == ".md":
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(content)
+    elif ext == ".docx":
+        _write_docx_content(file_path, content)
+    elif ext == ".pdf":
+        # PDF editing not supported - text extraction only
+        raise ValueError("PDF editing via text extraction not yet implemented. Please use DOCX or TXT.")
+    else:
+        raise ValueError(f"Unsupported file type for editing: {ext}")
+
+
+def _get_file_content_and_format(file_path: str, filename: str) -> dict:
+    """
+    Get file content and return it with format info.
+    For text files, returns the text. For binary files, returns base64-encoded data.
+    """
+    ext = os.path.splitext(filename)[1].lower()
+    
+    if ext == ".pdf":
+        text_content = _extract_pdf_content(file_path)
+        # Also return base64-encoded PDF for display
+        with open(file_path, "rb") as f:
+            pdf_base64 = base64.b64encode(f.read()).decode("utf-8")
+        return {
+            "content": text_content,
+            "format": "pdf",
+            "binary_data": pdf_base64,
+            "editable": False,  # PDF viewing only for now
+        }
+    elif ext == ".docx":
+        text_content = _extract_docx_content(file_path)
+        return {
+            "content": text_content,
+            "format": "docx",
+            "editable": True,
+        }
+    elif ext in (".txt", ".md"):
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        return {
+            "content": content,
+            "format": ext[1:],  # "txt" or "md"
+            "editable": True,
+        }
+    else:
+        return {
+            "content": f"[Unsupported file type: {ext}]",
+            "format": "unknown",
+            "editable": False,
+        }
 
 
 def _build_upload_path(
@@ -108,7 +206,7 @@ def read_document_content(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Read document content (for viewing/editing resumes and text documents)."""
+    """Read document content (for viewing/editing resumes and documents)."""
     document = get_document(session, doc_id)
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -120,22 +218,15 @@ def read_document_content(
 
     # If document has stored content (text-based)
     if document.content:
-        return {"content": document.content, "source": "text"}
+        return {"content": document.content, "format": "text"}
 
     # If document is a file, try to read it
     if document.document_location and os.path.exists(document.document_location):
         try:
-            if document.document_location.lower().endswith((".txt", ".md")):
-                with open(document.document_location, "r", encoding="utf-8") as f:
-                    content = f.read()
-                return {"content": content, "source": "file"}
-            else:
-                # For non-text files, return filename and location
-                return {
-                    "content": f"[Binary file: {document.document_name}]",
-                    "source": "binary",
-                    "filename": document.document_name,
-                }
+            file_info = _get_file_content_and_format(
+                document.document_location, document.document_name
+            )
+            return file_info
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -154,7 +245,7 @@ def update_document_content(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Update document content (for editing text-based resumes and documents)."""
+    """Update document content (for editing resumes and documents)."""
     from database.models.documents import update_document
 
     document = get_document(session, doc_id)
@@ -173,8 +264,32 @@ def update_document_content(
             detail="Content field is required",
         )
 
-    updated_doc = update_document(session, doc_id, content=content)
-    return updated_doc
+    # If document is stored in database, update directly
+    if document.content is not None:
+        updated_doc = update_document(session, doc_id, content=content)
+        return updated_doc
+
+    # If document is a file, update the file and also store in DB
+    if document.document_location and os.path.exists(document.document_location):
+        try:
+            _update_file_content(document.document_location, document.document_name, content)
+            # Also store in DB for quick access
+            updated_doc = update_document(session, doc_id, content=content)
+            return updated_doc
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e),
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to update document: {str(e)}",
+            )
+
+    raise HTTPException(
+        status_code=404, detail="Document not found or not accessible"
+    )
 
 
 @router.delete("/{doc_id}", status_code=status.HTTP_204_NO_CONTENT)
