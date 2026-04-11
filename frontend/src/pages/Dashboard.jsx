@@ -304,7 +304,9 @@ function Dashboard() {
                   </div>
                 )}
                 {token && (
-                  <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                  <div
+                    style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}
+                  >
                     {applications.some(
                       (a) =>
                         a.position_id === selectedJob.position_id &&
