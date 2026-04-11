@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from database.models.profile import Profile
     from database.models.recruiter import Recruiter
     from database.models.skills import Skills
-    from database.models.skills import Skills
 
 
 class User(Base):
