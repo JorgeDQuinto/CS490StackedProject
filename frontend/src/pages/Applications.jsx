@@ -657,17 +657,10 @@ function Applications() {
 
         const apps = await res.json();
 
-        if (!apps || apps.length === 0) {
-          setApplications(MOCK_APPLICATIONS);
-          setPositions(MOCK_POSITIONS);
-          setError("");
-          setLoading(false);
-          return;
-        }
+        const safeApps = apps || [];
+        setApplications(safeApps);
 
-        setApplications(apps);
-
-        const uniqueIds = [...new Set(apps.map((a) => a.position_id))];
+        const uniqueIds = [...new Set(safeApps.map((a) => a.position_id))];
         const posMap = {};
 
         await Promise.all(
@@ -715,14 +708,22 @@ function Applications() {
 
     try {
       setIsDeleting(true);
-      await fetch(`${API}/jobs/applications/${deleteTarget.job_id}`, {
-        method: "DELETE",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      }).catch(() => {});
-      setApplications((prev) =>
-        prev.filter((a) => a.job_id !== deleteTarget.job_id)
+      const res = await fetch(
+        `${API}/jobs/applications/${deleteTarget.job_id}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
-      setDeleteTarget(null);
+      if (res.ok || res.status === 204) {
+        setApplications((prev) =>
+          prev.filter((a) => a.job_id !== deleteTarget.job_id)
+        );
+        setDeleteTarget(null);
+      } else {
+        const body = await res.json().catch(() => ({}));
+        console.error("Failed to delete application:", res.status, body);
+      }
     } catch (err) {
       console.error("Failed to delete application:", err);
     } finally {
