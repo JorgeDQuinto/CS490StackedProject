@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Document, Page } from "react-pdf";
 import "./DocumentLibrary.css";
 
 const API = "http://localhost:8000";
@@ -21,10 +22,15 @@ function DocumentLibrary() {
   const [uploadSuccess, setUploadSuccess] = useState("");
   const [viewingDoc, setViewingDoc] = useState(null);
   const [viewContent, setViewContent] = useState("");
+  const [viewFormat, setViewFormat] = useState("");
+  const [viewBinaryData, setViewBinaryData] = useState(null);
+  const [viewEditable, setViewEditable] = useState(false);
   const [editingDoc, setEditingDoc] = useState(null);
   const [editContent, setEditContent] = useState("");
+  const [editFormat, setEditFormat] = useState("");
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState("");
+  const [pdfNumPages, setPdfNumPages] = useState(0);
   const fileInputRef = useRef(null);
 
   const token = localStorage.getItem("token");
@@ -108,6 +114,10 @@ function DocumentLibrary() {
       const data = await res.json();
       setViewingDoc(doc);
       setViewContent(data.content || "");
+      setViewFormat(data.format || "text");
+      setViewBinaryData(data.binary_data || null);
+      setViewEditable(data.editable || false);
+      setPdfNumPages(0);
     } catch (err) {
       console.error("Error:", err);
       setEditError("Failed to load document. Check console for details.");
@@ -133,15 +143,16 @@ function DocumentLibrary() {
       }
 
       const data = await res.json();
-      if (data.source === "binary") {
+      if (!data.editable) {
         setEditError(
-          `Cannot edit binary file: ${data.filename}. Only text-based resumes can be edited.`
+          `Cannot edit this file format. Only text-based files (.txt, .md, .docx, .pdf) can be edited.`
         );
         return;
       }
 
       setEditingDoc(doc);
       setEditContent(data.content || "");
+      setEditFormat(data.format || "text");
     } catch (err) {
       console.error("Error:", err);
       setEditError("Failed to load document. Check console for details.");
@@ -205,6 +216,10 @@ function DocumentLibrary() {
     fetchDocuments();
   };
 
+  const onPdfLoadSuccess = ({ numPages }) => {
+    setPdfNumPages(numPages);
+  };
+
   return (
     <div className="doclibrary">
       <h1>Document Library</h1>
@@ -219,6 +234,8 @@ function DocumentLibrary() {
                 onClick={() => {
                   setViewingDoc(null);
                   setViewContent("");
+                  setViewFormat("");
+                  setViewBinaryData(null);
                 }}
               >
                 ✕
@@ -226,7 +243,23 @@ function DocumentLibrary() {
             </div>
 
             <div className="doclibrary-viewer">
-              <pre>{viewContent}</pre>
+              {viewFormat === "pdf" && viewBinaryData ? (
+                <Document
+                  file={`data:application/pdf;base64,${viewBinaryData}`}
+                  onLoadSuccess={onPdfLoadSuccess}
+                  className="doclibrary-pdf-document"
+                >
+                  {Array.from(new Array(pdfNumPages), (_, index) => (
+                    <Page key={`page_${index + 1}`} pageNumber={index + 1} />
+                  ))}
+                </Document>
+              ) : viewFormat === "docx" ? (
+                <div className="doclibrary-docx-content">
+                  <pre>{viewContent}</pre>
+                </div>
+              ) : (
+                <pre>{viewContent}</pre>
+              )}
             </div>
 
             <div className="doclibrary-modal-actions">
@@ -235,6 +268,8 @@ function DocumentLibrary() {
                 onClick={() => {
                   setViewingDoc(null);
                   setViewContent("");
+                  setViewFormat("");
+                  setViewBinaryData(null);
                 }}
               >
                 Close
@@ -254,6 +289,7 @@ function DocumentLibrary() {
                 onClick={() => {
                   setEditingDoc(null);
                   setEditContent("");
+                  setEditFormat("");
                   setEditError("");
                 }}
               >
@@ -267,7 +303,8 @@ function DocumentLibrary() {
               className="doclibrary-editor"
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
-              placeholder="Edit your resume content here..."
+              placeholder="Edit your document content here..."
+              disabled={!viewEditable}
             />
 
             <div className="doclibrary-modal-actions">
@@ -276,6 +313,7 @@ function DocumentLibrary() {
                 onClick={() => {
                   setEditingDoc(null);
                   setEditContent("");
+                  setEditFormat("");
                   setEditError("");
                 }}
               >

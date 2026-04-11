@@ -284,3 +284,43 @@
 .doclibrary-close-btn:hover {
   background-color: var(--surface-2);
 }
+
+/* PDF Viewer Styles */
+.doclibrary-pdf-document {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.doclibrary-pdf-document > div {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.doclibrary-pdf-document canvas {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+}
+
+/* DOCX Viewer Styles */
+.doclibrary-docx-content {
+  flex: 1;
+  padding: 1.5rem;
+  border: none;
+  overflow-y: auto;
+  background-color: var(--surface-2);
+  color: var(--text);
+}
+
+.doclibrary-docx-content pre {
+  margin: 0;
+  font-family: "Monaco", "Courier New", monospace;
+  font-size: 0.95rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  line-height: 1.5;
+}
