@@ -37,6 +37,22 @@ function DocumentLibrary() {
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState("");
   const [pdfNumPages, setPdfNumPages] = useState(0);
+  const [aiDoc, setAiDoc] = useState(null);
+  const [aiInstructions, setAiInstructions] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiOriginal, setAiOriginal] = useState("");
+  const [aiImproved, setAiImproved] = useState("");
+  const [aiError, setAiError] = useState("");
+  const [aiApplying, setAiApplying] = useState(false);
+  const [genResumeOpen, setGenResumeOpen] = useState(false);
+  const [genResumeJobId, setGenResumeJobId] = useState("");
+  const [genResumeInstructions, setGenResumeInstructions] = useState("");
+  const [genResumeLoading, setGenResumeLoading] = useState(false);
+  const [genResumeContent, setGenResumeContent] = useState("");
+  const [genResumeDocName, setGenResumeDocName] = useState("");
+  const [genResumeError, setGenResumeError] = useState("");
+  const [appliedJobs, setAppliedJobs] = useState([]);
+  const [positions, setPositions] = useState([]);
   const fileInputRef = useRef(null);
 
   const token = localStorage.getItem("token");
@@ -226,9 +242,173 @@ function DocumentLibrary() {
     setPdfNumPages(numPages);
   };
 
+  const handleAiImprove = (doc) => {
+    setAiDoc(doc);
+    setAiInstructions("");
+    setAiOriginal("");
+    setAiImproved("");
+    setAiError("");
+  };
+
+  const handleAiGenerate = async () => {
+    if (!token) {
+      setAiError("You must be signed in.");
+      return;
+    }
+    setAiLoading(true);
+    setAiError("");
+    setAiOriginal("");
+    setAiImproved("");
+
+    try {
+      const res = await fetch(`${API}/documents/${aiDoc.doc_id}/ai-rewrite`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ instructions: aiInstructions }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setAiError(err.detail || "AI rewrite failed. Please try again.");
+        return;
+      }
+
+      const data = await res.json();
+      setAiOriginal(data.original);
+      setAiImproved(data.improved);
+    } catch (err) {
+      console.error("AI rewrite error:", err);
+      setAiError("Request failed. Check console for details.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleAiApply = async () => {
+    if (!token || !aiDoc) return;
+    setAiApplying(true);
+    setAiError("");
+
+    const res = await fetch(`${API}/documents/${aiDoc.doc_id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ content: aiImproved }),
+    });
+    setAiApplying(false);
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      setAiError(err.detail || "Failed to apply changes.");
+      return;
+    }
+
+    setAiDoc(null);
+    setUploadSuccess("AI improvements applied successfully!");
+    setTimeout(() => setUploadSuccess(""), 3000);
+    fetchDocuments();
+  };
+
+  const handleAiClose = () => {
+    setAiDoc(null);
+    setAiInstructions("");
+    setAiOriginal("");
+    setAiImproved("");
+    setAiError("");
+  };
+
+  const handleOpenGenResume = async () => {
+    setGenResumeOpen(true);
+    setGenResumeJobId("");
+    setGenResumeInstructions("");
+    setGenResumeContent("");
+    setGenResumeDocName("");
+    setGenResumeError("");
+
+    try {
+      const [jobsRes, posRes] = await Promise.all([
+        fetch(`${API}/jobs/dashboard`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API}/jobs/positions/`),
+      ]);
+      if (jobsRes.ok) setAppliedJobs(await jobsRes.json());
+      if (posRes.ok) setPositions(await posRes.json());
+    } catch {
+      // dropdown will just be empty; not fatal
+    }
+  };
+
+  const handleGenResumeGenerate = async () => {
+    if (!token) {
+      setGenResumeError("You must be signed in.");
+      return;
+    }
+    setGenResumeLoading(true);
+    setGenResumeError("");
+
+    try {
+      const res = await fetch(`${API}/documents/generate-resume`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          job_id: genResumeJobId ? parseInt(genResumeJobId) : null,
+          instructions: genResumeInstructions,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setGenResumeError(
+          err.detail || "Resume generation failed. Please try again."
+        );
+        return;
+      }
+
+      const data = await res.json();
+      setGenResumeContent(data.content);
+      setGenResumeDocName(data.document_name);
+      fetchDocuments();
+    } catch {
+      setGenResumeError("Request failed. Check console for details.");
+    } finally {
+      setGenResumeLoading(false);
+    }
+  };
+
+  const handleGenResumeClose = () => {
+    setGenResumeOpen(false);
+    setGenResumeJobId("");
+    setGenResumeInstructions("");
+    setGenResumeContent("");
+    setGenResumeDocName("");
+    setGenResumeError("");
+  };
+
+  // Build a position lookup map for the job dropdown
+  const positionMap = Object.fromEntries(
+    positions.map((p) => [p.position_id, p])
+  );
+
   return (
     <div className="doclibrary">
-      <h1>Document Library</h1>
+      <div className="doclibrary-header">
+        <h1>Document Library</h1>
+        <button
+          className="doclibrary-gen-resume-btn"
+          onClick={handleOpenGenResume}
+        >
+          Generate AI Resume
+        </button>
+      </div>
 
       {viewingDoc && (
         <div className="doclibrary-modal-overlay">
@@ -337,6 +517,211 @@ function DocumentLibrary() {
         </div>
       )}
 
+      {aiDoc && (
+        <div className="doclibrary-modal-overlay">
+          <div className="doclibrary-modal doclibrary-ai-modal">
+            <div className="doclibrary-modal-header">
+              <h2>AI Improve — {aiDoc.document_name}</h2>
+              <button
+                className="doclibrary-modal-close"
+                onClick={handleAiClose}
+              >
+                ✕
+              </button>
+            </div>
+
+            {!aiOriginal && (
+              <div className="doclibrary-ai-prompt">
+                <label className="doclibrary-ai-label">
+                  Instructions{" "}
+                  <span className="doclibrary-ai-optional">(optional)</span>
+                </label>
+                <textarea
+                  className="doclibrary-ai-instructions"
+                  value={aiInstructions}
+                  onChange={(e) => setAiInstructions(e.target.value)}
+                  placeholder="e.g. Make it more ATS-friendly, strengthen action verbs, tailor for a software engineering role…"
+                  rows={3}
+                  disabled={aiLoading}
+                />
+                {aiError && <p className="doclibrary-error">{aiError}</p>}
+              </div>
+            )}
+
+            {aiLoading && (
+              <div className="doclibrary-ai-loading">
+                <div className="doclibrary-ai-spinner" />
+                <p>Generating improvements…</p>
+              </div>
+            )}
+
+            {aiOriginal && !aiLoading && (
+              <div className="doclibrary-ai-compare">
+                <div className="doclibrary-ai-col">
+                  <div className="doclibrary-ai-col-header">Original</div>
+                  <pre className="doclibrary-ai-text">{aiOriginal}</pre>
+                </div>
+                <div className="doclibrary-ai-col">
+                  <div className="doclibrary-ai-col-header doclibrary-ai-col-header--improved">
+                    AI Suggestion
+                  </div>
+                  <textarea
+                    className="doclibrary-ai-text doclibrary-ai-text--editable"
+                    value={aiImproved}
+                    onChange={(e) => setAiImproved(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
+            {aiError && aiOriginal && (
+              <p className="doclibrary-error doclibrary-ai-error-inline">
+                {aiError}
+              </p>
+            )}
+
+            <div className="doclibrary-modal-actions">
+              <button className="doclibrary-cancel-btn" onClick={handleAiClose}>
+                Cancel
+              </button>
+              {!aiOriginal && (
+                <button
+                  className="doclibrary-ai-generate-btn"
+                  onClick={handleAiGenerate}
+                  disabled={aiLoading}
+                >
+                  {aiLoading ? "Generating…" : "Generate Improvements"}
+                </button>
+              )}
+              {aiOriginal && (
+                <>
+                  <button
+                    className="doclibrary-cancel-btn"
+                    onClick={() => {
+                      setAiOriginal("");
+                      setAiImproved("");
+                      setAiError("");
+                    }}
+                  >
+                    Try Again
+                  </button>
+                  <button
+                    className="doclibrary-save-btn"
+                    onClick={handleAiApply}
+                    disabled={aiApplying}
+                  >
+                    {aiApplying ? "Applying…" : "Apply Changes"}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {genResumeOpen && (
+        <div className="doclibrary-modal-overlay">
+          <div className="doclibrary-modal doclibrary-ai-modal">
+            <div className="doclibrary-modal-header">
+              <h2>Generate AI Resume</h2>
+              <button
+                className="doclibrary-modal-close"
+                onClick={handleGenResumeClose}
+              >
+                ✕
+              </button>
+            </div>
+
+            {!genResumeContent && (
+              <div className="doclibrary-ai-prompt">
+                <label className="doclibrary-ai-label">
+                  Target Job{" "}
+                  <span className="doclibrary-ai-optional">(optional)</span>
+                </label>
+                <select
+                  className="doclibrary-gen-select"
+                  value={genResumeJobId}
+                  onChange={(e) => setGenResumeJobId(e.target.value)}
+                  disabled={genResumeLoading}
+                >
+                  <option value="">— General resume (no specific job) —</option>
+                  {appliedJobs.map((job) => {
+                    const pos = positionMap[job.position_id];
+                    const label = pos
+                      ? `${pos.title} at ${pos.company_name} (${job.application_status})`
+                      : `Application #${job.job_id} (${job.application_status})`;
+                    return (
+                      <option key={job.job_id} value={job.job_id}>
+                        {label}
+                      </option>
+                    );
+                  })}
+                </select>
+
+                <label
+                  className="doclibrary-ai-label"
+                  style={{ marginTop: "0.75rem" }}
+                >
+                  Additional Instructions{" "}
+                  <span className="doclibrary-ai-optional">(optional)</span>
+                </label>
+                <textarea
+                  className="doclibrary-ai-instructions"
+                  value={genResumeInstructions}
+                  onChange={(e) => setGenResumeInstructions(e.target.value)}
+                  placeholder="e.g. Emphasize backend experience, target a senior-level role, keep to one page…"
+                  rows={3}
+                  disabled={genResumeLoading}
+                />
+                {genResumeError && (
+                  <p className="doclibrary-error">{genResumeError}</p>
+                )}
+              </div>
+            )}
+
+            {genResumeLoading && (
+              <div className="doclibrary-ai-loading">
+                <div className="doclibrary-ai-spinner" />
+                <p>Generating your resume…</p>
+              </div>
+            )}
+
+            {genResumeContent && !genResumeLoading && (
+              <div className="doclibrary-gen-result">
+                <div className="doclibrary-gen-result-header">
+                  <span className="doclibrary-gen-saved-badge">
+                    Saved as &ldquo;{genResumeDocName}&rdquo;
+                  </span>
+                </div>
+                <textarea
+                  className="doclibrary-gen-textarea"
+                  value={genResumeContent}
+                  readOnly
+                />
+              </div>
+            )}
+
+            <div className="doclibrary-modal-actions">
+              <button
+                className="doclibrary-cancel-btn"
+                onClick={handleGenResumeClose}
+              >
+                {genResumeContent ? "Close" : "Cancel"}
+              </button>
+              {!genResumeContent && (
+                <button
+                  className="doclibrary-ai-generate-btn"
+                  onClick={handleGenResumeGenerate}
+                  disabled={genResumeLoading}
+                >
+                  {genResumeLoading ? "Generating…" : "Generate Resume"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <section className="doclibrary-upload">
         <h2>Upload Document</h2>
         <form onSubmit={handleUpload} className="doclibrary-upload-form">
@@ -404,21 +789,28 @@ function DocumentLibrary() {
                       <button
                         className="doclibrary-action-btn doclibrary-view-btn"
                         onClick={() => handleView(doc)}
-                        title="View Resume"
+                        title="View Document"
                       >
                         View
                       </button>
                       <button
                         className="doclibrary-action-btn doclibrary-edit-btn"
                         onClick={() => handleEdit(doc)}
-                        title="Edit Resume"
+                        title="Edit Document"
                       >
                         Edit
                       </button>
                       <button
+                        className="doclibrary-action-btn doclibrary-ai-btn"
+                        onClick={() => handleAiImprove(doc)}
+                        title="AI Improve"
+                      >
+                        AI Improve
+                      </button>
+                      <button
                         className="doclibrary-action-btn doclibrary-delete-btn"
                         onClick={() => handleDelete(doc)}
-                        title="Delete Resume"
+                        title="Delete Document"
                       >
                         Delete
                       </button>
