@@ -24,6 +24,10 @@ export function MyAppNav() {
             Profile
           </NavLink>
 
+          <NavLink to="/postings" end>
+            Postings
+          </NavLink>
+
           <NavLink to="/documents" end>
             Document Library
           </NavLink>
