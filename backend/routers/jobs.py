@@ -254,6 +254,7 @@ def add_manual_job(
     return job
 
 
+# Single endpoint that handles every stage change.
 @router.put("/applications/{job_id}", response_model=ApplicationResponse)
 def update_application(
     job_id: int,
@@ -261,15 +262,18 @@ def update_application(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    # 404 check — verify the job exists before doing anything.
     job = get_applied_jobs(session, job_id)
     if not job:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Application not found"
         )
+    # 403 check — verify the logged-in user owns this job; another user can't change your application.
     if job.user_id != current_user.user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
+    # Stage validation — reject any stage not in the allowed pipeline list with a 422.
     if (
         body.application_status is not None
         and body.application_status not in PIPELINE_STAGES
@@ -278,8 +282,10 @@ def update_application(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Invalid stage. Must be one of: {PIPELINE_STAGES}",
         )
+    # Write a record to job_activity — this powers the timeline.
     if body.application_status is not None:
         create_job_activity(session, job_id, body.application_status)
+    # Update the job status and timestamp together — both happen or neither happens.
     updated = update_applied_job(
         session,
         job_id,
