@@ -26,15 +26,17 @@ function App() {
     if (!token) return;
     fetch(`${API}/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
-    }).then((res) => {
-      if (res.status === 401 || res.status === 403) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("isRecruiter");
-        window.location.reload();
-      }
-    }).catch(() => {
-      // Network error — leave token alone so offline use still works
-    });
+    })
+      .then((res) => {
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("isRecruiter");
+          window.location.reload();
+        }
+      })
+      .catch(() => {
+        // Network error — leave token alone so offline use still works
+      });
   }, []);
 
   return (

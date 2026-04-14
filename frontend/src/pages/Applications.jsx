@@ -110,7 +110,10 @@ function ApplicationCard({ app, position, onRemove, onStageChange }) {
   const [interviews, setInterviews] = useState([]);
   const [interviewsLoaded, setInterviewsLoaded] = useState(false);
   const [addingInterview, setAddingInterview] = useState(false);
-  const [newInterview, setNewInterview] = useState({ round_type: "", scheduled_at: "" });
+  const [newInterview, setNewInterview] = useState({
+    round_type: "",
+    scheduled_at: "",
+  });
   const [interviewError, setInterviewError] = useState("");
 
   // Outcome
@@ -118,9 +121,18 @@ function ApplicationCard({ app, position, onRemove, onStageChange }) {
   const [outcome, setOutcome] = useState(null);
   const [outcomeLoaded, setOutcomeLoaded] = useState(false);
   const [addingOutcome, setAddingOutcome] = useState(false);
-  const [newOutcome, setNewOutcome] = useState({ outcome_state: "", outcome_notes: "" });
+  const [newOutcome, setNewOutcome] = useState({
+    outcome_state: "",
+    outcome_notes: "",
+  });
   const [outcomeError, setOutcomeError] = useState("");
-  const OUTCOME_STATES = ["Applied", "Rejected", "Offer", "Accepted", "Withdrawn"];
+  const OUTCOME_STATES = [
+    "Applied",
+    "Rejected",
+    "Offer",
+    "Accepted",
+    "Withdrawn",
+  ];
 
   const handleStageChange = async (newStage) => {
     if (newStage === app.application_status || updatingStage) return;
@@ -383,7 +395,9 @@ I am eager to bring my motivation, adaptability, and willingness to learn to you
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
-        setInterviews((prev) => prev.filter((i) => i.interview_id !== interview_id));
+        setInterviews((prev) =>
+          prev.filter((i) => i.interview_id !== interview_id)
+        );
       }
     } catch {
       // silently fail
@@ -775,9 +789,7 @@ I am eager to bring my motivation, adaptability, and willingness to learn to you
               <ul className="followup-list">
                 {interviews.map((iv) => (
                   <li key={iv.interview_id} className="followup-item">
-                    <span className="followup-desc">
-                      📅 {iv.round_type}
-                    </span>
+                    <span className="followup-desc">📅 {iv.round_type}</span>
                     <span className="followup-date">
                       {new Date(iv.scheduled_at).toLocaleString()}
                     </span>
@@ -800,7 +812,10 @@ I am eager to bring my motivation, adaptability, and willingness to learn to you
                   placeholder="Round type (e.g. Technical, HR)"
                   value={newInterview.round_type}
                   onChange={(e) =>
-                    setNewInterview((prev) => ({ ...prev, round_type: e.target.value }))
+                    setNewInterview((prev) => ({
+                      ...prev,
+                      round_type: e.target.value,
+                    }))
                   }
                 />
                 <input
@@ -808,11 +823,20 @@ I am eager to bring my motivation, adaptability, and willingness to learn to you
                   className="followup-input"
                   value={newInterview.scheduled_at}
                   onChange={(e) =>
-                    setNewInterview((prev) => ({ ...prev, scheduled_at: e.target.value }))
+                    setNewInterview((prev) => ({
+                      ...prev,
+                      scheduled_at: e.target.value,
+                    }))
                   }
                 />
                 {interviewError && (
-                  <p style={{ color: "#ef4444", fontSize: "13px", margin: "4px 0" }}>
+                  <p
+                    style={{
+                      color: "#ef4444",
+                      fontSize: "13px",
+                      margin: "4px 0",
+                    }}
+                  >
                     {interviewError}
                   </p>
                 )}
@@ -857,8 +881,17 @@ I am eager to bring my motivation, adaptability, and willingness to learn to you
         {showOutcome && (
           <div className="followup-body">
             {outcome && !addingOutcome ? (
-              <div className="followup-item" style={{ flexDirection: "column", alignItems: "flex-start", gap: "4px" }}>
-                <span className="followup-desc">🏁 {outcome.outcome_state}</span>
+              <div
+                className="followup-item"
+                style={{
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                  gap: "4px",
+                }}
+              >
+                <span className="followup-desc">
+                  🏁 {outcome.outcome_state}
+                </span>
                 {outcome.outcome_notes && (
                   <span className="followup-date">{outcome.outcome_notes}</span>
                 )}
@@ -866,13 +899,21 @@ I am eager to bring my motivation, adaptability, and willingness to learn to you
                   <button
                     className="app-history-btn"
                     onClick={() => {
-                      setNewOutcome({ outcome_state: outcome.outcome_state, outcome_notes: outcome.outcome_notes || "" });
+                      setNewOutcome({
+                        outcome_state: outcome.outcome_state,
+                        outcome_notes: outcome.outcome_notes || "",
+                      });
                       setAddingOutcome(true);
                     }}
                   >
                     Edit
                   </button>
-                  <button className="followup-delete-btn" onClick={deleteOutcome}>✕ Remove</button>
+                  <button
+                    className="followup-delete-btn"
+                    onClick={deleteOutcome}
+                  >
+                    ✕ Remove
+                  </button>
                 </div>
               </div>
             ) : !addingOutcome ? (
@@ -885,12 +926,17 @@ I am eager to bring my motivation, adaptability, and willingness to learn to you
                   className="followup-input"
                   value={newOutcome.outcome_state}
                   onChange={(e) =>
-                    setNewOutcome((prev) => ({ ...prev, outcome_state: e.target.value }))
+                    setNewOutcome((prev) => ({
+                      ...prev,
+                      outcome_state: e.target.value,
+                    }))
                   }
                 >
                   <option value="">Select outcome…</option>
                   {OUTCOME_STATES.map((s) => (
-                    <option key={s} value={s}>{s}</option>
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
                   ))}
                 </select>
                 <input
@@ -899,16 +945,27 @@ I am eager to bring my motivation, adaptability, and willingness to learn to you
                   placeholder="Notes (optional)"
                   value={newOutcome.outcome_notes}
                   onChange={(e) =>
-                    setNewOutcome((prev) => ({ ...prev, outcome_notes: e.target.value }))
+                    setNewOutcome((prev) => ({
+                      ...prev,
+                      outcome_notes: e.target.value,
+                    }))
                   }
                 />
                 {outcomeError && (
-                  <p style={{ color: "#ef4444", fontSize: "13px", margin: "4px 0" }}>
+                  <p
+                    style={{
+                      color: "#ef4444",
+                      fontSize: "13px",
+                      margin: "4px 0",
+                    }}
+                  >
                     {outcomeError}
                   </p>
                 )}
                 <div style={{ display: "flex", gap: "8px" }}>
-                  <button className="app-history-btn" onClick={saveOutcome}>Save</button>
+                  <button className="app-history-btn" onClick={saveOutcome}>
+                    Save
+                  </button>
                   <button
                     className="app-history-btn"
                     onClick={() => {
@@ -971,8 +1028,7 @@ I am eager to bring my motivation, adaptability, and willingness to learn to you
               {activity.map((a) => {
                 const meta =
                   EVENT_TYPE_META[a.event_type] || EVENT_TYPE_META.stage_change;
-                const dotColor =
-                  meta.color || STATUS_COLOR[a.stage] || "#888";
+                const dotColor = meta.color || STATUS_COLOR[a.stage] || "#888";
                 return (
                   <li key={a.activity_id} className="app-activity-item">
                     <span

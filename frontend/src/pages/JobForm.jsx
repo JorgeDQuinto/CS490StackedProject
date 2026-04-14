@@ -174,7 +174,6 @@ function JobForm() {
     } finally {
       setIsSaving(false);
     }
-
   };
 
   if (loading) {
@@ -301,7 +300,9 @@ function JobForm() {
           <div
             style={{
               ...styles.messageContainer,
-              backgroundColor: message.includes("Failed") ? "#ffe6e6" : "#e6ffe6",
+              backgroundColor: message.includes("Failed")
+                ? "#ffe6e6"
+                : "#e6ffe6",
               borderColor: message.includes("Failed") ? "#ff6b6b" : "#10b981",
             }}
           >
@@ -316,7 +317,8 @@ function JobForm() {
             {redirectCountdown > 0 && (
               <div style={styles.redirectInfo}>
                 <p style={styles.countdown}>
-                  Redirecting to dashboard in {redirectCountdown} second{redirectCountdown !== 1 ? "s" : ""}...
+                  Redirecting to dashboard in {redirectCountdown} second
+                  {redirectCountdown !== 1 ? "s" : ""}...
                 </p>
                 <button
                   type="button"

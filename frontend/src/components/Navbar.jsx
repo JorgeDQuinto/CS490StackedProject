@@ -45,11 +45,20 @@ export function MyAppNav() {
       )}
 
       {token ? (
-        <button className="signout-nav-btn" style={{ marginLeft: "auto" }} onClick={handleSignOut}>
+        <button
+          className="signout-nav-btn"
+          style={{ marginLeft: "auto" }}
+          onClick={handleSignOut}
+        >
           Sign Out
         </button>
       ) : (
-        <NavLink to="/signin" end className="signin-nav-btn" style={{ marginLeft: "auto" }}>
+        <NavLink
+          to="/signin"
+          end
+          className="signin-nav-btn"
+          style={{ marginLeft: "auto" }}
+        >
           Sign In
         </NavLink>
       )}

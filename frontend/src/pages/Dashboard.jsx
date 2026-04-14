@@ -3,8 +3,15 @@ import { useNavigate, useLocation } from "react-router-dom";
 import "./Dashboard.css";
 
 const API = "http://localhost:8000";
- 
-function ApplyModal({ job, documents, onClose, onConfirm, onGenerateAIDoc, aiGenerating }) {
+
+function ApplyModal({
+  job,
+  documents,
+  onClose,
+  onConfirm,
+  onGenerateAIDoc,
+  aiGenerating,
+}) {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [selectedResume, setSelectedResume] = useState("");
@@ -52,7 +59,9 @@ function ApplyModal({ job, documents, onClose, onConfirm, onGenerateAIDoc, aiGen
               <button
                 type="button"
                 className="generate-ai-doc-btn"
-                onClick={() => onGenerateAIDoc("Resume", job.position_id, setSelectedResume)}
+                onClick={() =>
+                  onGenerateAIDoc("Resume", job.position_id, setSelectedResume)
+                }
                 disabled={submitting || aiGenerating}
               >
                 Generate AI Resume
@@ -79,7 +88,13 @@ function ApplyModal({ job, documents, onClose, onConfirm, onGenerateAIDoc, aiGen
               <button
                 type="button"
                 className="generate-ai-doc-btn"
-                onClick={() => onGenerateAIDoc("Cover Letter", job.position_id, setSelectedCoverLetter)}
+                onClick={() =>
+                  onGenerateAIDoc(
+                    "Cover Letter",
+                    job.position_id,
+                    setSelectedCoverLetter
+                  )
+                }
                 disabled={submitting || aiGenerating}
               >
                 Generate AI Cover Letter
@@ -259,19 +274,21 @@ function Dashboard() {
 
       const newDoc = await res.json();
       // Update the documents list and select the new document
-      setDocuments((prevDocs) => [...prevDocs, {
-        doc_id: newDoc.doc_id,
-        document_type: docType,
-        document_name: newDoc.document_name,
-        document_location: null, // AI generated docs are content-based
-        content: newDoc.content,
-        user_id: newDoc.user_id,
-      }]);
+      setDocuments((prevDocs) => [
+        ...prevDocs,
+        {
+          doc_id: newDoc.doc_id,
+          document_type: docType,
+          document_name: newDoc.document_name,
+          document_location: null, // AI generated docs are content-based
+          content: newDoc.content,
+          user_id: newDoc.user_id,
+        },
+      ]);
       setSelectedDoc(newDoc.doc_id);
       // Optionally show a success message
       setApplySuccess(`AI ${docType} generated successfully!`);
       setTimeout(() => setApplySuccess(""), 3000);
-
     } catch (err) {
       console.error(`Error generating AI ${docType}:`, err);
       // Display error in the modal
@@ -564,7 +581,10 @@ function Dashboard() {
                   <h3 className="job-card-title">{job.title}</h3>
                   {(job.location || job.location_type) && (
                     <span className="job-card-meta">
-                      📍 {[job.location_type, job.location].filter(Boolean).join(" · ")}
+                      📍{" "}
+                      {[job.location_type, job.location]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </span>
                   )}
                   <span className="job-card-meta">
@@ -590,7 +610,10 @@ function Dashboard() {
                 </h2>
                 {(selectedJob.location || selectedJob.location_type) && (
                   <p className="job-detail-meta">
-                    📍 {[selectedJob.location_type, selectedJob.location].filter(Boolean).join(" · ")}
+                    📍{" "}
+                    {[selectedJob.location_type, selectedJob.location]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </p>
                 )}
                 <p className="job-detail-meta">
@@ -656,7 +679,10 @@ function Dashboard() {
                   </h2>
                   {(selectedJob.location || selectedJob.location_type) && (
                     <p className="job-detail-meta">
-                      📍 {[selectedJob.location_type, selectedJob.location].filter(Boolean).join(" · ")}
+                      📍{" "}
+                      {[selectedJob.location_type, selectedJob.location]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </p>
                   )}
                   <p className="job-detail-meta">

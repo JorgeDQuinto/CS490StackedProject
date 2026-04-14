@@ -383,7 +383,11 @@ const styles = {
   },
   fieldLabel: { color: "var(--text-muted)", width: "140px", flexShrink: 0 },
   fieldValue: { color: "var(--text-strong)" },
-  divider: { border: "none", borderTop: "1px solid var(--border-light)", margin: 0 },
+  divider: {
+    border: "none",
+    borderTop: "1px solid var(--border-light)",
+    margin: 0,
+  },
   secondaryButton: {
     padding: "8px 16px",
     borderRadius: "8px",

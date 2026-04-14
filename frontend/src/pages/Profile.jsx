@@ -1265,9 +1265,17 @@ const styles = {
     fontWeight: "600",
     color: "var(--text-strong)",
   },
-  itemSecondary: { margin: "3px 0 0", fontSize: "13px", color: "var(--text-muted)" },
+  itemSecondary: {
+    margin: "3px 0 0",
+    fontSize: "13px",
+    color: "var(--text-muted)",
+  },
   itemActions: { display: "flex", gap: "8px", flexShrink: 0 },
-  percentageText: { fontSize: "24px", fontWeight: "700", color: "var(--text-strong)" },
+  percentageText: {
+    fontSize: "24px",
+    fontWeight: "700",
+    color: "var(--text-strong)",
+  },
   progressBar: {
     width: "100%",
     height: "14px",
