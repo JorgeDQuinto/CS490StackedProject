@@ -46,13 +46,18 @@ settings = get_settings()
 # Create a synchronous connection URL by removing the async driver if present
 sync_url = settings.database_url.replace("+asyncpg", "").replace("+aiosqlite", "")
 
-engine = create_engine(
-    sync_url,
-    echo=True,
-    pool_size=20,  # Base pool connections
-    max_overflow=10,  # Extra connections when pool exhausted
-    pool_pre_ping=True,  # Test connections before using
-)
+# Build engine with appropriate pool settings (PostgreSQL needs them, SQLite doesn't)
+engine_kwargs = {"echo": True}
+if "postgresql" in sync_url:
+    engine_kwargs.update(
+        {
+            "pool_size": 20,  # Base pool connections
+            "max_overflow": 10,  # Extra connections when pool exhausted
+            "pool_pre_ping": True,  # Test connections before using
+        }
+    )
+
+engine = create_engine(sync_url, **engine_kwargs)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
