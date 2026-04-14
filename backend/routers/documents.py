@@ -496,7 +496,9 @@ def generate_resume_from_profile(
             job_context = _build_position_context(applied_job.position)
             resolved_job_id = job_id
             company_name = (
-                applied_job.position.company.name if applied_job.position.company else ""
+                applied_job.position.company.name
+                if applied_job.position.company
+                else ""
             )
             job_label = (
                 f" - {applied_job.position.title} @ {company_name}"
@@ -512,7 +514,9 @@ def generate_resume_from_profile(
             job_context = _build_position_context(pos)
             company_name = pos.company.name if pos.company else ""
             job_label = (
-                f" - {pos.title} @ {company_name}" if company_name else f" - {pos.title}"
+                f" - {pos.title} @ {company_name}"
+                if company_name
+                else f" - {pos.title}"
             )
             # Link to an existing application for this position if one exists
             existing_app = get_applied_job_by_position(
@@ -658,7 +662,9 @@ def generate_cover_letter(
             job_context = _build_position_context(applied_job.position)
             resolved_job_id = job_id
             company_name = (
-                applied_job.position.company.name if applied_job.position.company else ""
+                applied_job.position.company.name
+                if applied_job.position.company
+                else ""
             )
             job_label = (
                 f" - {applied_job.position.title} @ {company_name}"
@@ -674,7 +680,9 @@ def generate_cover_letter(
             job_context = _build_position_context(pos)
             company_name = pos.company.name if pos.company else ""
             job_label = (
-                f" - {pos.title} @ {company_name}" if company_name else f" - {pos.title}"
+                f" - {pos.title} @ {company_name}"
+                if company_name
+                else f" - {pos.title}"
             )
             # Link to an existing application for this position if one exists
             existing_app = get_applied_job_by_position(
@@ -745,7 +753,9 @@ def generate_cover_letter(
             detail=f"Cover letter generation failed: {str(e)}",
         )
 
-    doc_name = f"AI Cover Letter{job_label} - {date_class.today().strftime('%Y-%m-%d')}.txt"
+    doc_name = (
+        f"AI Cover Letter{job_label} - {date_class.today().strftime('%Y-%m-%d')}.txt"
+    )
     new_doc = create_document(
         session,
         current_user.user_id,
