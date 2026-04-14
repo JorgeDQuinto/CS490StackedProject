@@ -900,7 +900,9 @@ function DocumentLibrary() {
                   onChange={(e) => setGenCoverJobId(e.target.value)}
                   disabled={genCoverLoading}
                 >
-                  <option value="">— General cover letter (no specific job) —</option>
+                  <option value="">
+                    — General cover letter (no specific job) —
+                  </option>
                   {appliedJobs.map((job) => {
                     const pos = positionMap[job.position_id];
                     const label = pos

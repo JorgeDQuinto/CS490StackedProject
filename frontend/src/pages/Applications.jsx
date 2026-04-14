@@ -1019,12 +1019,20 @@ function ApplicationCard({ app, position, onRemove, onStageChange }) {
             </div>
           </div>
           {genError ? (
-            <p style={{ color: "#ef4444", fontSize: "13px", margin: "8px 0 0" }}>
+            <p
+              style={{ color: "#ef4444", fontSize: "13px", margin: "8px 0 0" }}
+            >
               {genError}
             </p>
           ) : (
             <>
-              <p style={{ color: "var(--text-muted)", fontSize: "12px", margin: "4px 0 8px" }}>
+              <p
+                style={{
+                  color: "var(--text-muted)",
+                  fontSize: "12px",
+                  margin: "4px 0 8px",
+                }}
+              >
                 Saved to your Document Library.
               </p>
               <textarea
@@ -1302,14 +1310,19 @@ function AddJobModal({ onClose, onAdded }) {
           &times;
         </button>
         <h2 className="history-modal-title">Add Job to Track</h2>
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <form
+          onSubmit={handleSubmit}
+          style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+        >
           <div>
             <label className="details-label">Company Name *</label>
             <input
               className="details-input"
               style={{ width: "100%", boxSizing: "border-box" }}
               value={form.company_name}
-              onChange={(e) => setForm((p) => ({ ...p, company_name: e.target.value }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, company_name: e.target.value }))
+              }
               placeholder="e.g. Google"
             />
           </div>
@@ -1319,7 +1332,9 @@ function AddJobModal({ onClose, onAdded }) {
               className="details-input"
               style={{ width: "100%", boxSizing: "border-box" }}
               value={form.title}
-              onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, title: e.target.value }))
+              }
               placeholder="e.g. Software Engineer"
             />
           </div>
@@ -1329,7 +1344,9 @@ function AddJobModal({ onClose, onAdded }) {
               className="details-input"
               style={{ width: "100%", boxSizing: "border-box" }}
               value={form.location}
-              onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, location: e.target.value }))
+              }
               placeholder="e.g. New York, NY"
             />
           </div>
@@ -1340,7 +1357,9 @@ function AddJobModal({ onClose, onAdded }) {
               className="details-input"
               style={{ width: "100%", boxSizing: "border-box" }}
               value={form.salary}
-              onChange={(e) => setForm((p) => ({ ...p, salary: e.target.value }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, salary: e.target.value }))
+              }
               placeholder="e.g. 120000"
               min="0"
             />
@@ -1351,7 +1370,9 @@ function AddJobModal({ onClose, onAdded }) {
               className="details-textarea"
               style={{ width: "100%", boxSizing: "border-box" }}
               value={form.description}
-              onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, description: e.target.value }))
+              }
               rows={3}
               placeholder="Any notes about the job..."
             />
@@ -1362,15 +1383,21 @@ function AddJobModal({ onClose, onAdded }) {
               className="app-stage-select"
               style={{ width: "100%", boxSizing: "border-box" }}
               value={form.application_status}
-              onChange={(e) => setForm((p) => ({ ...p, application_status: e.target.value }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, application_status: e.target.value }))
+              }
             >
               {STAGES.map((s) => (
-                <option key={s} value={s}>{s}</option>
+                <option key={s} value={s}>
+                  {s}
+                </option>
               ))}
             </select>
           </div>
           {error && (
-            <p style={{ color: "#ef4444", fontSize: "13px", margin: "0" }}>{error}</p>
+            <p style={{ color: "#ef4444", fontSize: "13px", margin: "0" }}>
+              {error}
+            </p>
           )}
           <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
             <button
@@ -1455,24 +1482,26 @@ function Applications() {
     load();
   }, [token]);
 
-  const filtered = applications.filter((a) => {
-    const matchesStage =
-      filter === "All"
-        ? a.application_status !== "Withdrawn" &&
-          a.application_status !== "Archived"
-        : a.application_status === filter;
+  const filtered = applications
+    .filter((a) => {
+      const matchesStage =
+        filter === "All"
+          ? a.application_status !== "Withdrawn" &&
+            a.application_status !== "Archived"
+          : a.application_status === filter;
 
-    const positionTitle = positions[a.position_id]?.title || "";
-    const companyName = positions[a.position_id]?.company_name || "";
-    const query = search.toLowerCase().trim();
+      const positionTitle = positions[a.position_id]?.title || "";
+      const companyName = positions[a.position_id]?.company_name || "";
+      const query = search.toLowerCase().trim();
 
-    const matchesSearch =
-      query === "" ||
-      positionTitle.toLowerCase().includes(query) ||
-      companyName.toLowerCase().includes(query);
+      const matchesSearch =
+        query === "" ||
+        positionTitle.toLowerCase().includes(query) ||
+        companyName.toLowerCase().includes(query);
 
-    return matchesStage && matchesSearch;
-  }).sort((a, b) => b.job_id - a.job_id);
+      return matchesStage && matchesSearch;
+    })
+    .sort((a, b) => b.job_id - a.job_id);
 
   const handleDeleteApplication = async () => {
     if (!deleteTarget) return;

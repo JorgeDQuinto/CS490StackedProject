@@ -154,7 +154,9 @@ function Settings() {
         return fetch(`${API}/career-preferences/user/${d.user_id}`);
       })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d) setPrefs(d); })
+      .then((d) => {
+        if (d) setPrefs(d);
+      })
       .catch(() => {});
 
     fetch(`${API}/profile/me`, {

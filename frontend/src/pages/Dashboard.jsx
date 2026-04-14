@@ -178,7 +178,9 @@ function Dashboard() {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const posRes = await fetch(`${API}/jobs/positions/?include_manual=true`);
+        const posRes = await fetch(
+          `${API}/jobs/positions/?include_manual=true`
+        );
         if (posRes.ok) {
           const data = await posRes.json();
           const boardJobs = data.filter((p) => !p.is_manual);
@@ -511,18 +513,18 @@ function Dashboard() {
                 .sort((a, b) => b.job_id - a.job_id)
                 .slice(0, 3)
                 .map((app) => {
-                const pos = positionMap[app.position_id];
-                return (
-                  <div key={app.job_id} className="preview-job-item">
-                    <span className="preview-job-company">
-                      {pos?.company_name || app.application_status}
-                    </span>
-                    <span className="preview-job-title">
-                      {pos?.title || `Application #${app.job_id}`}
-                    </span>
-                  </div>
-                );
-              })
+                  const pos = positionMap[app.position_id];
+                  return (
+                    <div key={app.job_id} className="preview-job-item">
+                      <span className="preview-job-company">
+                        {pos?.company_name || app.application_status}
+                      </span>
+                      <span className="preview-job-title">
+                        {pos?.title || `Application #${app.job_id}`}
+                      </span>
+                    </div>
+                  );
+                })
             )}
           </div>
         </div>
