@@ -27,7 +27,10 @@ function PostingFormModal({ posting, onClose, onSaved }) {
 
   useEffect(() => {
     api
-      .get("/company/", { caller: "Postings.loadCompanies", action: "load_companies" })
+      .get("/company/", {
+        caller: "Postings.loadCompanies",
+        action: "load_companies",
+      })
       .then((r) => r.json())
       .then(setCompanies)
       .catch(() => {});
@@ -74,7 +77,10 @@ function PostingFormModal({ posting, onClose, onSaved }) {
     if (Object.keys(errs).length > 0) return;
 
     setIsSaving(true);
-    logAction("form_submit", { component: "Postings", action: isEditMode ? "edit_posting" : "create_posting" });
+    logAction("form_submit", {
+      component: "Postings",
+      action: isEditMode ? "edit_posting" : "create_posting",
+    });
     try {
       const company_id = await resolveCompanyId();
       if (!company_id) {
@@ -96,10 +102,14 @@ function PostingFormModal({ posting, onClose, onSaved }) {
       };
 
       const res = isEditMode
-        ? await api.put(`/jobs/positions/${posting.position_id}`, positionBody, {
-            caller: "Postings.updatePosting",
-            action: "update_posting",
-          })
+        ? await api.put(
+            `/jobs/positions/${posting.position_id}`,
+            positionBody,
+            {
+              caller: "Postings.updatePosting",
+              action: "update_posting",
+            }
+          )
         : await api.post("/jobs/positions/", positionBody, {
             caller: "Postings.createPosting",
             action: "create_posting",

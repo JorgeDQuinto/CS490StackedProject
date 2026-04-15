@@ -44,7 +44,10 @@ function ChangePasswordModal({ onCancel }) {
       return setError("New password must be at least 6 characters.");
     if (newPw !== confirm) return setError("Passwords do not match.");
 
-    logAction("form_submit", { component: "Settings", element: "change_password" });
+    logAction("form_submit", {
+      component: "Settings",
+      element: "change_password",
+    });
     const res = await api.post(
       "/auth/change-password",
       { current_password: current, new_password: newPw },
@@ -150,10 +153,13 @@ function Settings() {
       .then(async (d) => {
         setEmail(d.email || "");
         setUserId(d.user_id);
-        const prefsRes = await api.get(`/career-preferences/user/${d.user_id}`, {
-          caller: "Settings.loadPrefs",
-          action: "load_career_prefs",
-        });
+        const prefsRes = await api.get(
+          `/career-preferences/user/${d.user_id}`,
+          {
+            caller: "Settings.loadPrefs",
+            action: "load_career_prefs",
+          }
+        );
         if (prefsRes.ok) {
           const prefsData = await prefsRes.json();
           setPrefs(prefsData);
@@ -162,7 +168,10 @@ function Settings() {
       .catch(() => {});
 
     api
-      .get("/profile/me", { caller: "Settings.loadProfile", action: "load_profile" })
+      .get("/profile/me", {
+        caller: "Settings.loadProfile",
+        action: "load_profile",
+      })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (d) setProfile(d);
@@ -170,15 +179,24 @@ function Settings() {
   }, []);
 
   const savePrefs = async (values) => {
-    logAction("form_submit", { component: "Settings", element: "save_career_prefs" });
+    logAction("form_submit", {
+      component: "Settings",
+      element: "save_career_prefs",
+    });
     const path = prefs
       ? `/career-preferences/user/${userId}`
       : `/career-preferences/`;
     const body = prefs ? values : { user_id: userId, ...values };
 
     const res = prefs
-      ? await api.put(path, body, { caller: "Settings.updatePrefs", action: "update_career_prefs" })
-      : await api.post(path, body, { caller: "Settings.createPrefs", action: "create_career_prefs" });
+      ? await api.put(path, body, {
+          caller: "Settings.updatePrefs",
+          action: "update_career_prefs",
+        })
+      : await api.post(path, body, {
+          caller: "Settings.createPrefs",
+          action: "create_career_prefs",
+        });
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -194,7 +212,10 @@ function Settings() {
   };
 
   const saveProfile = async (values) => {
-    logAction("form_submit", { component: "Settings", element: "save_profile" });
+    logAction("form_submit", {
+      component: "Settings",
+      element: "save_profile",
+    });
     const res = await api.put(`/profile/${profile.profile_id}`, values, {
       caller: "Settings.saveProfile",
       action: "update_profile",

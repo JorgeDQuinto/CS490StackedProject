@@ -43,7 +43,11 @@ function DocViewerModal({ doc, onClose, token }) {
   useEffect(() => {
     if (!doc || !token) return;
     setLoading(true);
-    api.get(`/documents/${doc.doc_id}/content`, { caller: "Dashboard.DocViewerModal", action: "fetch_document_content" })
+    api
+      .get(`/documents/${doc.doc_id}/content`, {
+        caller: "Dashboard.DocViewerModal",
+        action: "fetch_document_content",
+      })
       .then((r) => r.json())
       .then((data) => setContent(data.content || ""))
       .catch(() => setContent(""))
@@ -283,7 +287,10 @@ function Dashboard() {
 
   const fetchJobsOnly = async () => {
     try {
-      const posRes = await api.get("/jobs/positions/?include_manual=true", { caller: "Dashboard.fetchJobsOnly", action: "refresh_positions" });
+      const posRes = await api.get("/jobs/positions/?include_manual=true", {
+        caller: "Dashboard.fetchJobsOnly",
+        action: "refresh_positions",
+      });
       if (posRes.ok) {
         const data = await posRes.json();
         const boardJobs = data.filter((p) => !p.is_manual);
@@ -300,7 +307,10 @@ function Dashboard() {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const posRes = await api.get("/jobs/positions/?include_manual=true", { caller: "Dashboard.fetchAll", action: "load_positions" });
+        const posRes = await api.get("/jobs/positions/?include_manual=true", {
+          caller: "Dashboard.fetchAll",
+          action: "load_positions",
+        });
         if (posRes.ok) {
           const data = await posRes.json();
           const boardJobs = data.filter((p) => !p.is_manual);
@@ -313,10 +323,22 @@ function Dashboard() {
         // Applications, documents, and metrics require auth
         if (token) {
           const [appRes, docRes, metricsRes, meRes] = await Promise.all([
-            api.get("/jobs/dashboard", { caller: "Dashboard.fetchAll", action: "load_applications" }),
-            api.get("/documents/me", { caller: "Dashboard.fetchAll", action: "load_documents" }),
-            api.get("/dashboard/metrics", { caller: "Dashboard.fetchAll", action: "load_metrics" }),
-            api.get("/profile/me", { caller: "Dashboard.fetchAll", action: "load_profile" }),
+            api.get("/jobs/dashboard", {
+              caller: "Dashboard.fetchAll",
+              action: "load_applications",
+            }),
+            api.get("/documents/me", {
+              caller: "Dashboard.fetchAll",
+              action: "load_documents",
+            }),
+            api.get("/dashboard/metrics", {
+              caller: "Dashboard.fetchAll",
+              action: "load_metrics",
+            }),
+            api.get("/profile/me", {
+              caller: "Dashboard.fetchAll",
+              action: "load_profile",
+            }),
           ]);
           if (appRes.ok) setApplications(await appRes.json());
           if (docRes.ok) setDocuments(await docRes.json());
@@ -363,15 +385,22 @@ function Dashboard() {
   }, [searchParams, jobs]);
 
   const handleApply = async (position_id) => {
-    const meRes = await api.get("/auth/me", { caller: "Dashboard.handleApply", action: "verify_auth" });
+    const meRes = await api.get("/auth/me", {
+      caller: "Dashboard.handleApply",
+      action: "verify_auth",
+    });
     if (!meRes.ok) return "You must be signed in to apply.";
     const me = await meRes.json();
 
-    const res = await api.post("/jobs/applications/", {
-      user_id: me.user_id,
-      position_id,
-      years_of_experience: 0,
-    }, { caller: "Dashboard.handleApply", action: "submit_application" });
+    const res = await api.post(
+      "/jobs/applications/",
+      {
+        user_id: me.user_id,
+        position_id,
+        years_of_experience: 0,
+      },
+      { caller: "Dashboard.handleApply", action: "submit_application" }
+    );
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -381,7 +410,10 @@ function Dashboard() {
     setApplyTarget(null);
     setApplySuccess(`Applied to ${applyTarget?.title}!`);
     setTimeout(() => setApplySuccess(""), 3000);
-    const appRes = await api.get("/jobs/dashboard", { caller: "Dashboard.handleApply", action: "refresh_applications" });
+    const appRes = await api.get("/jobs/dashboard", {
+      caller: "Dashboard.handleApply",
+      action: "refresh_applications",
+    });
     if (appRes.ok) setApplications(await appRes.json());
     return null;
   };
@@ -395,7 +427,14 @@ function Dashboard() {
           ? "/documents/generate-resume"
           : "/documents/generate-cover-letter";
 
-      const res = await api.post(endpoint, { position_id }, { caller: "Dashboard.handleGenerateAIDoc", action: `generate_ai_${docType.toLowerCase().replace(" ", "_")}` });
+      const res = await api.post(
+        endpoint,
+        { position_id },
+        {
+          caller: "Dashboard.handleGenerateAIDoc",
+          action: `generate_ai_${docType.toLowerCase().replace(" ", "_")}`,
+        }
+      );
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -404,7 +443,10 @@ function Dashboard() {
 
       const newDoc = await res.json();
       // Refetch documents so job-resume links are current
-      const docRes = await api.get("/documents/me", { caller: "Dashboard.handleGenerateAIDoc", action: "refresh_documents" });
+      const docRes = await api.get("/documents/me", {
+        caller: "Dashboard.handleGenerateAIDoc",
+        action: "refresh_documents",
+      });
       if (docRes.ok) setDocuments(await docRes.json());
       else
         setDocuments((prev) => [

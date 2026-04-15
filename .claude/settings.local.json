@@ -10,7 +10,9 @@
       "Bash(./backend/venv/bin/python -m pytest backend/tests/ -v)",
       "Bash(ruff check:*)",
       "Bash(npx eslint:*)",
-      "Bash(ruff format:*)"
+      "Bash(ruff format:*)",
+      "Bash(npx prettier:*)",
+      "Bash(npm run:*)"
     ]
   }
 }

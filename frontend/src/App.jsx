@@ -38,7 +38,10 @@ function App() {
     const token = localStorage.getItem("token");
     if (!token) return;
     api
-      .get("/auth/me", { caller: "App.validateToken", action: "validate_token" })
+      .get("/auth/me", {
+        caller: "App.validateToken",
+        action: "validate_token",
+      })
       .then((res) => {
         if (res.status === 401 || res.status === 403) {
           localStorage.removeItem("token");

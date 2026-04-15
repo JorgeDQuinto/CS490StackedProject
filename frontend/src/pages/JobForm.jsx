@@ -43,7 +43,10 @@ function JobForm() {
 
   useEffect(() => {
     api
-      .get("/company/", { caller: "JobForm.loadCompanies", action: "load_companies" })
+      .get("/company/", {
+        caller: "JobForm.loadCompanies",
+        action: "load_companies",
+      })
       .then((r) => r.json())
       .then((data) => {
         setCompanies(data);
@@ -121,7 +124,10 @@ function JobForm() {
     if (Object.keys(errs).length > 0) return;
 
     setIsSaving(true);
-    logAction("form_submit", { component: "JobForm", action: isEditMode ? "edit_position" : "create_position" });
+    logAction("form_submit", {
+      component: "JobForm",
+      action: isEditMode ? "edit_position" : "create_position",
+    });
 
     try {
       const company_id = await resolveCompanyId();

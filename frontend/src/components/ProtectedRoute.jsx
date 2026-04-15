@@ -12,7 +12,10 @@ function ProtectedRoute({ children }) {
       return;
     }
     api
-      .get("/auth/me", { caller: "ProtectedRoute.validate", action: "validate_token" })
+      .get("/auth/me", {
+        caller: "ProtectedRoute.validate",
+        action: "validate_token",
+      })
       .then((res) => {
         if (res.ok) {
           setValid(true);

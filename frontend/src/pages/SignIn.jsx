@@ -96,9 +96,7 @@ function SignIn() {
     form.append("username", email);
     form.append("password", password);
 
-    const endpoint = isRecruiter
-      ? "/auth/recruiter/login"
-      : "/auth/login";
+    const endpoint = isRecruiter ? "/auth/recruiter/login" : "/auth/login";
 
     const res = await api.post(endpoint, form, {
       caller: "SignIn.login",

@@ -144,7 +144,10 @@ function ApplicationCard({
       const res = await api.put(
         `/jobs/applications/${app.job_id}`,
         { application_status: newStage },
-        { caller: "Applications.handleStageChange", action: "update_application_stage" }
+        {
+          caller: "Applications.handleStageChange",
+          action: "update_application_stage",
+        }
       );
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
@@ -171,10 +174,10 @@ function ApplicationCard({
     }
 
     try {
-      const res = await api.get(
-        `/jobs/applications/${app.job_id}/activity`,
-        { caller: "Applications.loadActivity", action: "fetch_application_activity" }
-      );
+      const res = await api.get(`/jobs/applications/${app.job_id}/activity`, {
+        caller: "Applications.loadActivity",
+        action: "fetch_application_activity",
+      });
 
       if (res.ok) {
         setActivity(await res.json());
@@ -194,7 +197,10 @@ function ApplicationCard({
       const res = await api.post(
         "/documents/generate-cover-letter",
         { job_id: app.job_id },
-        { caller: "Applications.generateCoverLetter", action: "generate_cover_letter" }
+        {
+          caller: "Applications.generateCoverLetter",
+          action: "generate_cover_letter",
+        }
       );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -231,7 +237,10 @@ function ApplicationCard({
           deadline: detailValues.deadline || null,
           recruiter_notes: detailValues.recruiter_notes || null,
         },
-        { caller: "Applications.saveDetails", action: "save_deadline_and_notes" }
+        {
+          caller: "Applications.saveDetails",
+          action: "save_deadline_and_notes",
+        }
       );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -250,10 +259,10 @@ function ApplicationCard({
   const loadFollowUps = async () => {
     if (!showFollowUps && !followUpsLoaded) {
       try {
-        const res = await api.get(
-          `/jobs/${app.job_id}/followups`,
-          { caller: "Applications.loadFollowUps", action: "fetch_follow_ups" }
-        );
+        const res = await api.get(`/jobs/${app.job_id}/followups`, {
+          caller: "Applications.loadFollowUps",
+          action: "fetch_follow_ups",
+        });
         if (res.ok) setFollowUps(await res.json());
       } catch {
         // leave empty on error
@@ -295,7 +304,10 @@ function ApplicationCard({
       const res = await api.put(
         `/followups/${fu.followup_id}`,
         { completed: !fu.completed },
-        { caller: "Applications.toggleComplete", action: "toggle_follow_up_complete" }
+        {
+          caller: "Applications.toggleComplete",
+          action: "toggle_follow_up_complete",
+        }
       );
       if (res.ok) {
         const updated = await res.json();
@@ -310,10 +322,10 @@ function ApplicationCard({
 
   const deleteFollowUp = async (followup_id) => {
     try {
-      const res = await api.delete(
-        `/followups/${followup_id}`,
-        { caller: "Applications.deleteFollowUp", action: "delete_follow_up" }
-      );
+      const res = await api.delete(`/followups/${followup_id}`, {
+        caller: "Applications.deleteFollowUp",
+        action: "delete_follow_up",
+      });
       if (res.ok) {
         setFollowUps((prev) =>
           prev.filter((f) => f.followup_id !== followup_id)
@@ -327,10 +339,10 @@ function ApplicationCard({
   const loadInterviews = async () => {
     if (!showInterviews && !interviewsLoaded) {
       try {
-        const res = await api.get(
-          `/jobs/${app.job_id}/interviews`,
-          { caller: "Applications.loadInterviews", action: "fetch_interviews" }
-        );
+        const res = await api.get(`/jobs/${app.job_id}/interviews`, {
+          caller: "Applications.loadInterviews",
+          action: "fetch_interviews",
+        });
         if (res.ok) setInterviews(await res.json());
       } catch {
         // leave empty on error
@@ -379,10 +391,10 @@ function ApplicationCard({
 
   const deleteInterview = async (interview_id) => {
     try {
-      const res = await api.delete(
-        `/interviews/${interview_id}`,
-        { caller: "Applications.deleteInterview", action: "delete_interview" }
-      );
+      const res = await api.delete(`/interviews/${interview_id}`, {
+        caller: "Applications.deleteInterview",
+        action: "delete_interview",
+      });
       if (res.ok) {
         setInterviews((prev) =>
           prev.filter((i) => i.interview_id !== interview_id)
@@ -1026,7 +1038,10 @@ function HistoryOverlay({ applications, positions, onClose, onRestore }) {
           try {
             const res = await api.get(
               `/jobs/applications/${app.job_id}/activity`,
-              { caller: "Applications.HistoryOverlay", action: "fetch_all_activity" }
+              {
+                caller: "Applications.HistoryOverlay",
+                action: "fetch_all_activity",
+              }
             );
             if (res.ok) {
               const activities = await res.json();
@@ -1182,11 +1197,10 @@ function AddJobModal({ onClose, onAdded }) {
         description: form.description.trim() || null,
         application_status: form.application_status,
       };
-      const res = await api.post(
-        "/jobs/manual",
-        body,
-        { caller: "Applications.AddJobModal", action: "create_manual_job" }
-      );
+      const res = await api.post("/jobs/manual", body, {
+        caller: "Applications.AddJobModal",
+        action: "create_manual_job",
+      });
       if (!res.ok) {
         const detail = await res.json().catch(() => ({}));
         setError(detail.detail || "Failed to save job.");
@@ -1338,10 +1352,10 @@ function Applications() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await api.get(
-          "/jobs/dashboard",
-          { caller: "Applications.load", action: "fetch_dashboard" }
-        );
+        const res = await api.get("/jobs/dashboard", {
+          caller: "Applications.load",
+          action: "fetch_dashboard",
+        });
 
         if (!res.ok) {
           setApplications([]);
@@ -1358,10 +1372,10 @@ function Applications() {
         // Fetch all positions in one request to avoid exhausting the DB connection pool
         const posMap = {};
         if (safeApps.length > 0) {
-          const pr = await api.get(
-            "/jobs/positions/?include_manual=true",
-            { caller: "Applications.load", action: "fetch_positions" }
-          );
+          const pr = await api.get("/jobs/positions/?include_manual=true", {
+            caller: "Applications.load",
+            action: "fetch_positions",
+          });
           if (pr.ok) {
             const allPositions = await pr.json();
             const neededIds = new Set(safeApps.map((a) => a.position_id));
@@ -1374,10 +1388,10 @@ function Applications() {
         setPositions(posMap);
 
         if (token) {
-          const docRes = await api.get(
-            "/documents/me",
-            { caller: "Applications.load", action: "fetch_user_documents" }
-          );
+          const docRes = await api.get("/documents/me", {
+            caller: "Applications.load",
+            action: "fetch_user_documents",
+          });
           if (docRes.ok) setDocuments(await docRes.json());
         }
 
@@ -1423,7 +1437,10 @@ function Applications() {
       const res = await api.put(
         `/jobs/applications/${deleteTarget.job_id}`,
         { application_status: "Withdrawn" },
-        { caller: "Applications.handleDeleteApplication", action: "withdraw_application" }
+        {
+          caller: "Applications.handleDeleteApplication",
+          action: "withdraw_application",
+        }
       );
       if (res.ok) {
         setApplications((prev) =>
@@ -1444,10 +1461,10 @@ function Applications() {
 
   const handleJobAdded = async (newApp) => {
     // Fetch the position info for the new app so the card renders correctly
-    const r = await api.get(
-      `/jobs/positions/${newApp.position_id}`,
-      { caller: "Applications.handleJobAdded", action: "fetch_new_position" }
-    );
+    const r = await api.get(`/jobs/positions/${newApp.position_id}`, {
+      caller: "Applications.handleJobAdded",
+      action: "fetch_new_position",
+    });
     if (r.ok) {
       const pos = await r.json();
       setPositions((prev) => ({ ...prev, [newApp.position_id]: pos }));

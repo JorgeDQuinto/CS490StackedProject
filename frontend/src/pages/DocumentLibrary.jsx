@@ -73,16 +73,23 @@ function DocumentLibrary() {
       return;
     }
     try {
-      const res = await api.get("/documents/me", { caller: "DocumentLibrary.fetchDocuments", action: "load_documents" });
+      const res = await api.get("/documents/me", {
+        caller: "DocumentLibrary.fetchDocuments",
+        action: "load_documents",
+      });
       if (!res.ok) {
         setLoadError("Failed to load documents. Please sign in again.");
         return;
       }
       const docs = await res.json();
-      logAction("DocumentLibrary.fetchDocuments", "documents_loaded", { count: docs.length });
+      logAction("DocumentLibrary.fetchDocuments", "documents_loaded", {
+        count: docs.length,
+      });
       setDocuments(docs);
     } catch (err) {
-      logAction("DocumentLibrary.fetchDocuments", "load_documents_error", { error: err.message });
+      logAction("DocumentLibrary.fetchDocuments", "load_documents_error", {
+        error: err.message,
+      });
       setLoadError("Failed to load documents.");
     }
   };
@@ -91,8 +98,14 @@ function DocumentLibrary() {
     fetchDocuments();
     if (token) {
       Promise.all([
-        api.get("/jobs/dashboard", { caller: "DocumentLibrary.useEffect", action: "load_applied_jobs" }),
-        api.get("/jobs/positions/?include_manual=true", { caller: "DocumentLibrary.useEffect", action: "load_positions" }),
+        api.get("/jobs/dashboard", {
+          caller: "DocumentLibrary.useEffect",
+          action: "load_applied_jobs",
+        }),
+        api.get("/jobs/positions/?include_manual=true", {
+          caller: "DocumentLibrary.useEffect",
+          action: "load_positions",
+        }),
       ]).then(([jobsRes, posRes]) => {
         if (jobsRes.ok) jobsRes.json().then(setAppliedJobs);
         if (posRes.ok) posRes.json().then(setPositions);
@@ -120,7 +133,10 @@ function DocumentLibrary() {
     form.append("document_type", docType);
 
     setUploading(true);
-    const res = await api.post("/documents/upload", form, { caller: "DocumentLibrary.handleUpload", action: "upload_document" });
+    const res = await api.post("/documents/upload", form, {
+      caller: "DocumentLibrary.handleUpload",
+      action: "upload_document",
+    });
     setUploading(false);
 
     if (!res.ok) {
@@ -143,7 +159,10 @@ function DocumentLibrary() {
     }
 
     try {
-      const res = await api.get(`/documents/${doc.doc_id}/content`, { caller: "DocumentLibrary.handleView", action: "view_document" });
+      const res = await api.get(`/documents/${doc.doc_id}/content`, {
+        caller: "DocumentLibrary.handleView",
+        action: "view_document",
+      });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -159,7 +178,9 @@ function DocumentLibrary() {
       setViewEditable(data.editable || false);
       setPdfNumPages(0);
     } catch (err) {
-      logAction("DocumentLibrary.handleView", "view_document_error", { error: err.message });
+      logAction("DocumentLibrary.handleView", "view_document_error", {
+        error: err.message,
+      });
       setEditError("Failed to load document.");
     }
   };
@@ -172,7 +193,10 @@ function DocumentLibrary() {
     }
 
     try {
-      const res = await api.get(`/documents/${doc.doc_id}/content`, { caller: "DocumentLibrary.handleEdit", action: "load_document_for_edit" });
+      const res = await api.get(`/documents/${doc.doc_id}/content`, {
+        caller: "DocumentLibrary.handleEdit",
+        action: "load_document_for_edit",
+      });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -192,7 +216,9 @@ function DocumentLibrary() {
       setEditContent(data.content || "");
       setEditFormat(data.format || "text");
     } catch (err) {
-      logAction("DocumentLibrary.handleEdit", "edit_document_error", { error: err.message });
+      logAction("DocumentLibrary.handleEdit", "edit_document_error", {
+        error: err.message,
+      });
       setEditError("Failed to load document.");
     }
   };
@@ -205,7 +231,11 @@ function DocumentLibrary() {
 
     setSaving(true);
     setEditError("");
-    const res = await api.put(`/documents/${editingDoc.doc_id}`, { content: editContent }, { caller: "DocumentLibrary.handleSave", action: "save_document" });
+    const res = await api.put(
+      `/documents/${editingDoc.doc_id}`,
+      { content: editContent },
+      { caller: "DocumentLibrary.handleSave", action: "save_document" }
+    );
     setSaving(false);
 
     if (!res.ok) {
@@ -232,10 +262,16 @@ function DocumentLibrary() {
       return;
     }
 
-    logAction("DocumentLibrary.handleDelete", "delete_document_attempt", { doc_id: doc.doc_id, name: doc.document_name });
+    logAction("DocumentLibrary.handleDelete", "delete_document_attempt", {
+      doc_id: doc.doc_id,
+      name: doc.document_name,
+    });
     setDeletingId(doc.doc_id);
     try {
-      const res = await api.delete(`/documents/${doc.doc_id}`, { caller: "DocumentLibrary.handleDelete", action: "delete_document" });
+      const res = await api.delete(`/documents/${doc.doc_id}`, {
+        caller: "DocumentLibrary.handleDelete",
+        action: "delete_document",
+      });
 
       if (!res.ok) {
         let errorMsg = "Failed to delete document.";
@@ -244,14 +280,19 @@ function DocumentLibrary() {
           responseBody = await res.text();
           const err = JSON.parse(responseBody);
           errorMsg = err.detail || errorMsg;
-          logAction("DocumentLibrary.handleDelete", "delete_error", { doc_id: doc.doc_id, detail: err.detail });
+          logAction("DocumentLibrary.handleDelete", "delete_error", {
+            doc_id: doc.doc_id,
+            detail: err.detail,
+          });
         } catch (e) {
           if (res.status === 404) {
             errorMsg = "Document not found. It may have already been deleted.";
           } else if (res.status === 403) {
             errorMsg = "You don't have permission to delete this document.";
           }
-          logAction("DocumentLibrary.handleDelete", "delete_error_unparsed", { status: res.status });
+          logAction("DocumentLibrary.handleDelete", "delete_error_unparsed", {
+            status: res.status,
+          });
         }
         setUploadError(errorMsg);
         setTimeout(() => setUploadError(""), 4000);
@@ -259,7 +300,9 @@ function DocumentLibrary() {
         return;
       }
 
-      logAction("DocumentLibrary.handleDelete", "delete_success", { doc_id: doc.doc_id });
+      logAction("DocumentLibrary.handleDelete", "delete_success", {
+        doc_id: doc.doc_id,
+      });
       setUploadSuccess("Document deleted successfully!");
       setTimeout(() => setUploadSuccess(""), 3000);
       // Refresh documents after a short delay to ensure backend processed
@@ -267,7 +310,9 @@ function DocumentLibrary() {
         fetchDocuments();
       }, 500);
     } catch (err) {
-      logAction("DocumentLibrary.handleDelete", "delete_network_error", { error: err.message });
+      logAction("DocumentLibrary.handleDelete", "delete_network_error", {
+        error: err.message,
+      });
       setUploadError(
         "Network error deleting document. Please check your connection."
       );
@@ -301,7 +346,11 @@ function DocumentLibrary() {
     setAiImproved("");
 
     try {
-      const res = await api.post(`/documents/${aiDoc.doc_id}/ai-rewrite`, { instructions: aiInstructions }, { caller: "DocumentLibrary.handleAiGenerate", action: "ai_rewrite" });
+      const res = await api.post(
+        `/documents/${aiDoc.doc_id}/ai-rewrite`,
+        { instructions: aiInstructions },
+        { caller: "DocumentLibrary.handleAiGenerate", action: "ai_rewrite" }
+      );
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -313,7 +362,9 @@ function DocumentLibrary() {
       setAiOriginal(data.original);
       setAiImproved(data.improved);
     } catch (err) {
-      logAction("DocumentLibrary.handleAiGenerate", "ai_rewrite_error", { error: err.message });
+      logAction("DocumentLibrary.handleAiGenerate", "ai_rewrite_error", {
+        error: err.message,
+      });
       setAiError("Request failed.");
     } finally {
       setAiLoading(false);
@@ -325,7 +376,14 @@ function DocumentLibrary() {
     setAiApplying(true);
     setAiError("");
 
-    const res = await api.put(`/documents/${aiDoc.doc_id}`, { content: aiImproved }, { caller: "DocumentLibrary.handleAiApply", action: "apply_ai_improvements" });
+    const res = await api.put(
+      `/documents/${aiDoc.doc_id}`,
+      { content: aiImproved },
+      {
+        caller: "DocumentLibrary.handleAiApply",
+        action: "apply_ai_improvements",
+      }
+    );
     setAiApplying(false);
 
     if (!res.ok) {
@@ -358,8 +416,14 @@ function DocumentLibrary() {
 
     try {
       const [jobsRes, posRes] = await Promise.all([
-        api.get("/jobs/dashboard", { caller: "DocumentLibrary.handleOpenGenResume", action: "load_applied_jobs" }),
-        api.get("/jobs/positions/", { caller: "DocumentLibrary.handleOpenGenResume", action: "load_positions" }),
+        api.get("/jobs/dashboard", {
+          caller: "DocumentLibrary.handleOpenGenResume",
+          action: "load_applied_jobs",
+        }),
+        api.get("/jobs/positions/", {
+          caller: "DocumentLibrary.handleOpenGenResume",
+          action: "load_positions",
+        }),
       ]);
       if (jobsRes.ok) setAppliedJobs(await jobsRes.json());
       if (posRes.ok) setPositions(await posRes.json());
@@ -377,10 +441,17 @@ function DocumentLibrary() {
     setGenResumeError("");
 
     try {
-      const res = await api.post("/documents/generate-resume", {
+      const res = await api.post(
+        "/documents/generate-resume",
+        {
           job_id: genResumeJobId ? parseInt(genResumeJobId) : null,
           instructions: genResumeInstructions,
-        }, { caller: "DocumentLibrary.handleGenResumeGenerate", action: "generate_resume" });
+        },
+        {
+          caller: "DocumentLibrary.handleGenResumeGenerate",
+          action: "generate_resume",
+        }
+      );
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -420,8 +491,14 @@ function DocumentLibrary() {
 
     try {
       const [jobsRes, posRes] = await Promise.all([
-        api.get("/jobs/dashboard", { caller: "DocumentLibrary.handleOpenGenCover", action: "load_applied_jobs" }),
-        api.get("/jobs/positions/", { caller: "DocumentLibrary.handleOpenGenCover", action: "load_positions" }),
+        api.get("/jobs/dashboard", {
+          caller: "DocumentLibrary.handleOpenGenCover",
+          action: "load_applied_jobs",
+        }),
+        api.get("/jobs/positions/", {
+          caller: "DocumentLibrary.handleOpenGenCover",
+          action: "load_positions",
+        }),
       ]);
       if (jobsRes.ok) setAppliedJobs(await jobsRes.json());
       if (posRes.ok) setPositions(await posRes.json());
@@ -439,10 +516,17 @@ function DocumentLibrary() {
     setGenCoverError("");
 
     try {
-      const res = await api.post("/documents/generate-cover-letter", {
+      const res = await api.post(
+        "/documents/generate-cover-letter",
+        {
           job_id: genCoverJobId ? parseInt(genCoverJobId) : null,
           instructions: genCoverInstructions,
-        }, { caller: "DocumentLibrary.handleGenCoverGenerate", action: "generate_cover_letter" });
+        },
+        {
+          caller: "DocumentLibrary.handleGenCoverGenerate",
+          action: "generate_cover_letter",
+        }
+      );
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));

@@ -114,7 +114,8 @@ function DevLogViewer() {
   // Auto-scroll to bottom only when new entries arrive
   const prevCountRef = useRef(0);
   useEffect(() => {
-    const currentCount = tab === "frontend" ? apiLogs.length : backendLogs.length;
+    const currentCount =
+      tab === "frontend" ? apiLogs.length : backendLogs.length;
     if (currentCount > prevCountRef.current && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
@@ -176,12 +177,8 @@ function DevLogViewer() {
           {apiLogs.length} frontend / {backendLogs.length} backend
         </span>
         <div style={{ flex: 1 }} />
-        <HeaderButton onClick={() => setViewState("open")}>
-          expand
-        </HeaderButton>
-        <HeaderButton onClick={() => setViewState("closed")}>
-          x
-        </HeaderButton>
+        <HeaderButton onClick={() => setViewState("open")}>expand</HeaderButton>
+        <HeaderButton onClick={() => setViewState("closed")}>x</HeaderButton>
       </div>
     );
   }
@@ -226,7 +223,14 @@ function DevLogViewer() {
           flexWrap: "wrap",
         }}
       >
-        <span style={{ color: "#0f0", fontSize: 11, fontWeight: 700, marginRight: 4 }}>
+        <span
+          style={{
+            color: "#0f0",
+            fontSize: 11,
+            fontWeight: 700,
+            marginRight: 4,
+          }}
+        >
           LOG CONSOLE
         </span>
         <span style={{ color: "#333", marginRight: 2 }}>|</span>
@@ -295,7 +299,9 @@ function DevLogViewer() {
                   {log.requestId?.slice(0, 8)}...
                 </span>
                 {log.error && (
-                  <div style={{ color: "#f44336", marginLeft: 16, fontSize: 10 }}>
+                  <div
+                    style={{ color: "#f44336", marginLeft: 16, fontSize: 10 }}
+                  >
                     {log.error}
                     {log.stack && (
                       <pre

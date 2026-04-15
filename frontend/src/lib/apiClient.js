@@ -178,6 +178,5 @@ export const api = {
     return apiRequest(path, opts, context);
   },
 
-  delete: (path, context) =>
-    apiRequest(path, { method: "DELETE" }, context),
+  delete: (path, context) => apiRequest(path, { method: "DELETE" }, context),
 };
