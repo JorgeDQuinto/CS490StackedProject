@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import "./Postings.css";
 
 const API = "http://localhost:8000";
@@ -14,6 +13,7 @@ function PostingFormModal({ posting, onClose, onSaved }) {
     title: posting?.title ?? "",
     listing_date:
       posting?.listing_date ?? new Date().toISOString().split("T")[0],
+    deadline: posting?.deadline ?? "",
     salary: posting?.salary ?? "",
     location_type: posting?.location_type ?? "",
     location: posting?.location ?? "",
@@ -98,6 +98,7 @@ function PostingFormModal({ posting, onClose, onSaved }) {
           company_id,
           title: formData.title,
           listing_date: formData.listing_date,
+          deadline: formData.deadline || null,
           salary: formData.salary ? Number(formData.salary) : null,
           location_type: formData.location_type || null,
           location: formData.location || null,
@@ -177,6 +178,17 @@ function PostingFormModal({ posting, onClose, onSaved }) {
           {errors.listing_date && (
             <p className="postings-form-error">{errors.listing_date}</p>
           )}
+
+          <label className="postings-form-label">
+            Application Deadline (optional)
+          </label>
+          <input
+            type="date"
+            name="deadline"
+            value={formData.deadline}
+            onChange={handleChange}
+            className="postings-form-input"
+          />
 
           <label className="postings-form-label">Salary (optional)</label>
           <input
@@ -271,7 +283,6 @@ function Postings() {
   const [loading, setLoading] = useState(true);
   const [modalPosting, setModalPosting] = useState(undefined);
   const token = localStorage.getItem("token");
-  const navigate = useNavigate();
 
   const fetchJobs = async () => {
     try {
@@ -305,6 +316,8 @@ function Postings() {
     } else {
       setJobs((prev) => [saved, ...prev]);
       setSelectedJob(saved);
+      // Notify Dashboard (same tab) so it refreshes its job board immediately
+      window.dispatchEvent(new CustomEvent("positionsUpdated"));
     }
     setModalPosting(undefined);
   };
