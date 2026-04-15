@@ -9,8 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 # `schemas` are always importable regardless of where the process is launched from.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# from database import Base, engine
-from routers import (
+from logging_config import setup_logging  # noqa: E402, I001
+from middleware.request_logger import RequestLoggingMiddleware  # noqa: E402
+from routers import (  # noqa: E402
     auth,
     career_preferences,
     company,
@@ -18,6 +19,7 @@ from routers import (
     education,
     experience,
     follow_ups,
+    frontend_logs,
     interviews,
     job_documents,
     jobs,
@@ -28,6 +30,8 @@ from routers import (
     skills,
     users,
 )
+
+setup_logging()
 
 
 @asynccontextmanager
@@ -40,12 +44,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="ATS API", lifespan=lifespan)
 
+app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID"],
 )
 
 # Include Routers
@@ -67,6 +73,7 @@ app.include_router(
     career_preferences.router, prefix="/career-preferences", tags=["Career Preferences"]
 )
 app.include_router(follow_ups.router, prefix="", tags=["Follow-Ups"])
+app.include_router(frontend_logs.router, prefix="/logs", tags=["Logs"])
 
 
 @app.get("/")

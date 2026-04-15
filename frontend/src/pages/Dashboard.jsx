@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { api } from "../lib/apiClient";
+import { logAction } from "../lib/actionLogger";
 import "./Dashboard.css";
-
-const API = "http://localhost:8000";
 
 // Extract city portion from a location string so variants like
 // "New York, NY" and "New York" resolve to the same filter bucket.
@@ -43,9 +43,11 @@ function DocViewerModal({ doc, onClose, token }) {
   useEffect(() => {
     if (!doc || !token) return;
     setLoading(true);
-    fetch(`${API}/documents/${doc.doc_id}/content`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    api
+      .get(`/documents/${doc.doc_id}/content`, {
+        caller: "Dashboard.DocViewerModal",
+        action: "fetch_document_content",
+      })
       .then((r) => r.json())
       .then((data) => setContent(data.content || ""))
       .catch(() => setContent(""))
@@ -285,7 +287,10 @@ function Dashboard() {
 
   const fetchJobsOnly = async () => {
     try {
-      const posRes = await fetch(`${API}/jobs/positions/?include_manual=true`);
+      const posRes = await api.get("/jobs/positions/?include_manual=true", {
+        caller: "Dashboard.fetchJobsOnly",
+        action: "refresh_positions",
+      });
       if (posRes.ok) {
         const data = await posRes.json();
         const boardJobs = data.filter((p) => !p.is_manual);
@@ -295,16 +300,17 @@ function Dashboard() {
         setPositionMap(map);
       }
     } catch (err) {
-      console.error("Jobs refresh error:", err);
+      // handled by api client
     }
   };
 
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const posRes = await fetch(
-          `${API}/jobs/positions/?include_manual=true`
-        );
+        const posRes = await api.get("/jobs/positions/?include_manual=true", {
+          caller: "Dashboard.fetchAll",
+          action: "load_positions",
+        });
         if (posRes.ok) {
           const data = await posRes.json();
           const boardJobs = data.filter((p) => !p.is_manual);
@@ -317,17 +323,21 @@ function Dashboard() {
         // Applications, documents, and metrics require auth
         if (token) {
           const [appRes, docRes, metricsRes, meRes] = await Promise.all([
-            fetch(`${API}/jobs/dashboard`, {
-              headers: { Authorization: `Bearer ${token}` },
+            api.get("/jobs/dashboard", {
+              caller: "Dashboard.fetchAll",
+              action: "load_applications",
             }),
-            fetch(`${API}/documents/me`, {
-              headers: { Authorization: `Bearer ${token}` },
+            api.get("/documents/me", {
+              caller: "Dashboard.fetchAll",
+              action: "load_documents",
             }),
-            fetch(`${API}/dashboard/metrics`, {
-              headers: { Authorization: `Bearer ${token}` },
+            api.get("/dashboard/metrics", {
+              caller: "Dashboard.fetchAll",
+              action: "load_metrics",
             }),
-            fetch(`${API}/profile/me`, {
-              headers: { Authorization: `Bearer ${token}` },
+            api.get("/profile/me", {
+              caller: "Dashboard.fetchAll",
+              action: "load_profile",
             }),
           ]);
           if (appRes.ok) setApplications(await appRes.json());
@@ -339,7 +349,7 @@ function Dashboard() {
           }
         }
       } catch (err) {
-        console.error("Dashboard fetch error:", err);
+        // handled by api client
       } finally {
         setLoading(false);
       }
@@ -375,24 +385,22 @@ function Dashboard() {
   }, [searchParams, jobs]);
 
   const handleApply = async (position_id) => {
-    const meRes = await fetch(`${API}/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
+    const meRes = await api.get("/auth/me", {
+      caller: "Dashboard.handleApply",
+      action: "verify_auth",
     });
     if (!meRes.ok) return "You must be signed in to apply.";
     const me = await meRes.json();
 
-    const res = await fetch(`${API}/jobs/applications/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
+    const res = await api.post(
+      "/jobs/applications/",
+      {
         user_id: me.user_id,
         position_id,
         years_of_experience: 0,
-      }),
-    });
+      },
+      { caller: "Dashboard.handleApply", action: "submit_application" }
+    );
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -402,8 +410,9 @@ function Dashboard() {
     setApplyTarget(null);
     setApplySuccess(`Applied to ${applyTarget?.title}!`);
     setTimeout(() => setApplySuccess(""), 3000);
-    const appRes = await fetch(`${API}/jobs/dashboard`, {
-      headers: { Authorization: `Bearer ${token}` },
+    const appRes = await api.get("/jobs/dashboard", {
+      caller: "Dashboard.handleApply",
+      action: "refresh_applications",
     });
     if (appRes.ok) setApplications(await appRes.json());
     return null;
@@ -415,17 +424,17 @@ function Dashboard() {
     try {
       const endpoint =
         docType === "Resume"
-          ? `${API}/documents/generate-resume`
-          : `${API}/documents/generate-cover-letter`;
+          ? "/documents/generate-resume"
+          : "/documents/generate-cover-letter";
 
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ position_id }),
-      });
+      const res = await api.post(
+        endpoint,
+        { position_id },
+        {
+          caller: "Dashboard.handleGenerateAIDoc",
+          action: `generate_ai_${docType.toLowerCase().replace(" ", "_")}`,
+        }
+      );
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -434,8 +443,9 @@ function Dashboard() {
 
       const newDoc = await res.json();
       // Refetch documents so job-resume links are current
-      const docRes = await fetch(`${API}/documents/me`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const docRes = await api.get("/documents/me", {
+        caller: "Dashboard.handleGenerateAIDoc",
+        action: "refresh_documents",
       });
       if (docRes.ok) setDocuments(await docRes.json());
       else
@@ -453,7 +463,7 @@ function Dashboard() {
       setApplySuccess(`AI ${docType} generated successfully!`);
       setTimeout(() => setApplySuccess(""), 3000);
     } catch (err) {
-      console.error(`Error generating AI ${docType}:`, err);
+      // handled by api client
     } finally {
       setAiGenerating(false);
     }
