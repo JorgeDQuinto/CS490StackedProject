@@ -79,12 +79,11 @@ function DevLogViewer() {
   const [backendClearedAfter, setBackendClearedAfter] = useState(null);
   const scrollRef = useRef(null);
 
-  // Refresh display every second when panel is visible
+  // Refresh display every second so log counts stay current in all view states
   useEffect(() => {
-    if (viewState !== "open") return;
     const id = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(id);
-  }, [viewState]);
+  }, []);
 
   // Fetch backend logs when the backend tab is active
   const fetchBackendLogs = useCallback((afterTs) => {
@@ -100,13 +99,12 @@ function DevLogViewer() {
     setTab(newTab);
   }, []);
 
-  // Poll backend logs whenever the panel is open (any tab) so the count stays current
+  // Poll backend logs so the count stays current in all view states
   useEffect(() => {
-    if (viewState !== "open") return;
     fetchBackendLogs(backendClearedAfter);
     const id = setInterval(() => fetchBackendLogs(backendClearedAfter), 3000);
     return () => clearInterval(id);
-  }, [viewState, backendClearedAfter, fetchBackendLogs]);
+  }, [backendClearedAfter, fetchBackendLogs]);
 
   const apiLogs = getLogs();
   const totalCount = apiLogs.length + backendLogs.length;
