@@ -574,6 +574,20 @@
   font-weight: 500;
 }
 
+.doclibrary-linked-job-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-align: left;
+}
+
+.doclibrary-linked-job-btn:hover {
+  color: #c4b5fd;
+}
+
 .doclibrary-unlinked {
   color: var(--text-muted, #6b7280);
   font-size: 0.82rem;

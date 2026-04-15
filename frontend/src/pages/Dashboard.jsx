@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import "./Dashboard.css";
 
 const API = "http://localhost:8000";
@@ -10,6 +10,95 @@ const normalizeLocation = (loc) => {
   if (!loc) return "";
   return loc.split(",")[0].trim();
 };
+
+function DeadlineBadge({ deadline, className = "job-card-meta" }) {
+  if (!deadline) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dl = new Date(deadline + "T00:00:00");
+  const daysLeft = Math.ceil((dl - today) / (1000 * 60 * 60 * 24));
+  const expired = daysLeft < 0;
+  const urgent = !expired && daysLeft <= 7;
+  return (
+    <span
+      className={className}
+      style={{
+        color: expired ? "#ef4444" : urgent ? "#f97316" : "#6b7280",
+        fontWeight: urgent || expired ? 600 : 400,
+      }}
+    >
+      {expired
+        ? `Deadline passed (${deadline})`
+        : daysLeft === 0
+          ? "Deadline: Today"
+          : `Deadline: ${deadline} · ${daysLeft}d left`}
+    </span>
+  );
+}
+
+function DocViewerModal({ doc, onClose, token }) {
+  const [content, setContent] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!doc || !token) return;
+    setLoading(true);
+    fetch(`${API}/documents/${doc.doc_id}/content`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => setContent(data.content || ""))
+      .catch(() => setContent(""))
+      .finally(() => setLoading(false));
+  }, [doc, token]);
+
+  if (!doc) return null;
+
+  return (
+    <div className="apply-overlay" onClick={onClose}>
+      <div
+        className="apply-modal"
+        style={{ maxWidth: "680px", maxHeight: "80vh" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="apply-modal-header">
+          <div>
+            <h3 className="apply-modal-title">
+              {doc.document_name || "Resume"}
+            </h3>
+            <p className="apply-modal-company">{doc.document_type}</p>
+          </div>
+          <button className="apply-modal-x" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+        <div className="apply-modal-divider" />
+        {loading ? (
+          <p style={{ padding: "1rem", color: "#888" }}>Loading…</p>
+        ) : (
+          <pre
+            style={{
+              padding: "1rem",
+              overflowY: "auto",
+              maxHeight: "55vh",
+              whiteSpace: "pre-wrap",
+              fontSize: "0.8rem",
+              color: "#ccc",
+              lineHeight: 1.5,
+            }}
+          >
+            {content || "(empty)"}
+          </pre>
+        )}
+        <div className="apply-modal-actions">
+          <button className="apply-modal-cancel" onClick={onClose}>
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ApplyModal({
   job,
@@ -185,12 +274,30 @@ function Dashboard() {
   const [filterTitle, setFilterTitle] = useState("");
   const [filterMinSalary, setFilterMinSalary] = useState("");
   const [filterMaxSalary, setFilterMaxSalary] = useState("");
+  const [viewingDoc, setViewingDoc] = useState(null);
 
   const jobBoardRef = useRef(null);
   const filterRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const token = localStorage.getItem("token");
+
+  const fetchJobsOnly = async () => {
+    try {
+      const posRes = await fetch(`${API}/jobs/positions/?include_manual=true`);
+      if (posRes.ok) {
+        const data = await posRes.json();
+        const boardJobs = data.filter((p) => !p.is_manual);
+        setJobs(boardJobs);
+        const map = {};
+        for (const p of data) map[p.position_id] = p;
+        setPositionMap(map);
+      }
+    } catch (err) {
+      console.error("Jobs refresh error:", err);
+    }
+  };
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -202,7 +309,6 @@ function Dashboard() {
           const data = await posRes.json();
           const boardJobs = data.filter((p) => !p.is_manual);
           setJobs(boardJobs);
-          if (boardJobs.length > 0) setSelectedJob(boardJobs[0]);
           const map = {};
           for (const p of data) map[p.position_id] = p;
           setPositionMap(map);
@@ -240,6 +346,33 @@ function Dashboard() {
     };
     fetchAll();
   }, [location.pathname, token]);
+
+  // Re-fetch jobs when a new posting is added from the Postings page
+  useEffect(() => {
+    const handlePositionsUpdated = () => fetchJobsOnly();
+    const handleFocus = () => fetchJobsOnly();
+    window.addEventListener("positionsUpdated", handlePositionsUpdated);
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      window.removeEventListener("positionsUpdated", handlePositionsUpdated);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, []);
+
+  // Open a specific job card when navigated here from Documents page (?job=<position_id>)
+  useEffect(() => {
+    const pid = searchParams.get("job");
+    if (!pid || jobs.length === 0) return;
+    const target = jobs.find((j) => String(j.position_id) === pid);
+    if (target) {
+      setSelectedJob(target);
+      setSearchParams({}, { replace: true });
+      setTimeout(
+        () => jobBoardRef.current?.scrollIntoView({ behavior: "smooth" }),
+        100
+      );
+    }
+  }, [searchParams, jobs]);
 
   const handleApply = async (position_id) => {
     const meRes = await fetch(`${API}/auth/me`, {
@@ -285,17 +418,13 @@ function Dashboard() {
           ? `${API}/documents/generate-resume`
           : `${API}/documents/generate-cover-letter`;
 
-      const body = { position_id };
-      // If the user has existing instructions, they could be added here.
-      // For now, we'll send a basic request.
-
       const res = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ position_id }),
       });
 
       if (!res.ok) {
@@ -304,30 +433,45 @@ function Dashboard() {
       }
 
       const newDoc = await res.json();
-      // Update the documents list and select the new document
-      setDocuments((prevDocs) => [
-        ...prevDocs,
-        {
-          doc_id: newDoc.doc_id,
-          document_type: docType,
-          document_name: newDoc.document_name,
-          document_location: null, // AI generated docs are content-based
-          content: newDoc.content,
-          user_id: newDoc.user_id,
-        },
-      ]);
+      // Refetch documents so job-resume links are current
+      const docRes = await fetch(`${API}/documents/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (docRes.ok) setDocuments(await docRes.json());
+      else
+        setDocuments((prev) => [
+          ...prev,
+          {
+            doc_id: newDoc.doc_id,
+            document_type: docType,
+            document_name: newDoc.document_name,
+            job_id: newDoc.job_id ?? null,
+          },
+        ]);
+
       setSelectedDoc(newDoc.doc_id);
-      // Optionally show a success message
       setApplySuccess(`AI ${docType} generated successfully!`);
       setTimeout(() => setApplySuccess(""), 3000);
     } catch (err) {
       console.error(`Error generating AI ${docType}:`, err);
-      // Display error in the modal
-      // This would require passing a setter for error to ApplyModal
     } finally {
       setAiGenerating(false);
     }
   };
+
+  // Build position_id → resume docs map so job cards can show linked resumes.
+  // Path: doc.job_id → applied_job.job_id → applied_job.position_id
+  const positionResumeMap = {};
+  for (const doc of documents) {
+    if (doc.document_type === "Resume" && doc.job_id) {
+      const app = applications.find((a) => a.job_id === doc.job_id);
+      if (app) {
+        if (!positionResumeMap[app.position_id])
+          positionResumeMap[app.position_id] = [];
+        positionResumeMap[app.position_id].push(doc);
+      }
+    }
+  }
 
   const uniqueLocations = [
     ...new Map(
@@ -435,6 +579,26 @@ function Dashboard() {
     jobBoardRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // Renders linked resumes for a job inside the detail panel / expanded modal
+  const renderLinkedResumes = (job) => {
+    const resumes = positionResumeMap[job.position_id];
+    if (!resumes || resumes.length === 0) return null;
+    return (
+      <div className="job-detail-section">
+        <h3>Generated Resume{resumes.length > 1 ? "s" : ""}</h3>
+        {resumes.map((doc) => (
+          <button
+            key={doc.doc_id}
+            className="job-linked-resume-btn"
+            onClick={() => setViewingDoc(doc)}
+          >
+            {doc.document_name || `Resume #${doc.doc_id}`}
+          </button>
+        ))}
+      </div>
+    );
+  };
+
   // ── Action buttons row (shared between inline detail and expanded overlay) ──
 
   const renderActionButtons = (job) => {
@@ -512,6 +676,13 @@ function Dashboard() {
           aiGenerating={aiGenerating}
         />
       )}
+      {viewingDoc && (
+        <DocViewerModal
+          doc={viewingDoc}
+          token={token}
+          onClose={() => setViewingDoc(null)}
+        />
+      )}
       <h1 className="dashboard-welcome">
         Welcome{firstName ? `, ${firstName}` : ""}
       </h1>
@@ -534,8 +705,8 @@ function Dashboard() {
             </div>
             <div className="metrics-stat">
               <span className="metrics-stat-value">
-                {metrics.outcome_counts["Offer"] +
-                  metrics.outcome_counts["Accepted"]}
+                {(metrics.outcome_counts["Offer"] ?? 0) +
+                  (metrics.outcome_counts["Accepted"] ?? 0)}
               </span>
               <span className="metrics-stat-label">Offers</span>
             </div>
@@ -809,50 +980,72 @@ function Dashboard() {
         ) : (
           <>
             <div className="job-board-list">
-              {filteredJobs.map((job) => (
-                <div
-                  key={job.position_id}
-                  className={`job-card ${
-                    selectedJob?.position_id === job.position_id
-                      ? "job-card-selected"
-                      : ""
-                  }`}
-                  onClick={() => setSelectedJob(job)}
-                >
-                  <div className="job-card-top-row">
-                    <span className="job-card-company">{job.company_name}</span>
-                    {(() => {
-                      const app = applications.find(
-                        (a) =>
-                          a.position_id === job.position_id &&
-                          a.application_status !== "Withdrawn"
-                      );
-                      return app ? (
-                        <span
-                          className={`preview-status-badge preview-status-${app.application_status?.toLowerCase()}`}
-                        >
-                          {app.application_status}
-                        </span>
-                      ) : null;
-                    })()}
-                  </div>
-                  <h3 className="job-card-title">{job.title}</h3>
-                  {(job.location || job.location_type) && (
+              {filteredJobs.map((job) => {
+                const cardResumes = positionResumeMap[job.position_id];
+                return (
+                  <div
+                    key={job.position_id}
+                    className={`job-card ${
+                      selectedJob?.position_id === job.position_id
+                        ? "job-card-selected"
+                        : ""
+                    }`}
+                    onClick={() => setSelectedJob(job)}
+                  >
+                    <div className="job-card-top-row">
+                      <span className="job-card-company">
+                        {job.company_name}
+                      </span>
+                      {(() => {
+                        const app = applications.find(
+                          (a) =>
+                            a.position_id === job.position_id &&
+                            a.application_status !== "Withdrawn"
+                        );
+                        return app ? (
+                          <span
+                            className={`preview-status-badge preview-status-${app.application_status?.toLowerCase()}`}
+                          >
+                            {app.application_status}
+                          </span>
+                        ) : null;
+                      })()}
+                    </div>
+                    <h3 className="job-card-title">{job.title}</h3>
+                    {(job.location || job.location_type) && (
+                      <span className="job-card-meta">
+                        📍{" "}
+                        {[job.location_type, job.location]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                    )}
                     <span className="job-card-meta">
-                      📍{" "}
-                      {[job.location_type, job.location]
-                        .filter(Boolean)
-                        .join(" · ")}
+                      {job.salary
+                        ? `$${Number(job.salary).toLocaleString()}`
+                        : "Salary not listed"}
                     </span>
-                  )}
-                  <span className="job-card-meta">
-                    {job.salary
-                      ? `$${Number(job.salary).toLocaleString()}`
-                      : "Salary not listed"}
-                  </span>
-                  <span className="job-card-meta">{job.listing_date}</span>
-                </div>
-              ))}
+                    <span className="job-card-meta">{job.listing_date}</span>
+                    <DeadlineBadge deadline={job.deadline} />
+                    {cardResumes?.length > 0 && (
+                      <div className="job-card-resume-row">
+                        {cardResumes.slice(-1).map((doc) => (
+                          <button
+                            key={doc.doc_id}
+                            className="job-card-resume-link"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setViewingDoc(doc);
+                            }}
+                          >
+                            📄 {doc.document_name || "View Resume"}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {selectedJob && (
@@ -882,6 +1075,14 @@ function Dashboard() {
                 <p className="job-detail-meta">
                   Listed: {selectedJob.listing_date}
                 </p>
+                {selectedJob.deadline && (
+                  <DeadlineBadge
+                    deadline={selectedJob.deadline}
+                    className="job-detail-meta"
+                  />
+                )}
+
+                {renderLinkedResumes(selectedJob)}
 
                 {selectedJob.description && (
                   <div className="job-detail-section">
@@ -951,6 +1152,14 @@ function Dashboard() {
                   <p className="job-detail-meta">
                     Listed: {selectedJob.listing_date}
                   </p>
+                  {selectedJob.deadline && (
+                    <DeadlineBadge
+                      deadline={selectedJob.deadline}
+                      className="job-detail-meta"
+                    />
+                  )}
+
+                  {renderLinkedResumes(selectedJob)}
 
                   {selectedJob.description && (
                     <div className="job-detail-section">

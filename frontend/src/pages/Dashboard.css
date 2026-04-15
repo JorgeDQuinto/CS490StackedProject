@@ -1199,3 +1199,48 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Linked resume in job card */
+.job-card-resume-row {
+  margin-top: 0.4rem;
+}
+
+.job-card-resume-link {
+  background: none;
+  border: none;
+  color: #60a5fa;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
+  text-align: left;
+}
+
+.job-card-resume-link:hover {
+  color: #93c5fd;
+}
+
+/* Linked resume button inside detail panel */
+.job-linked-resume-btn {
+  display: inline-block;
+  background: rgba(96, 165, 250, 0.1);
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  border-radius: 4px;
+  color: #60a5fa;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0.3rem 0.6rem;
+  margin: 0.2rem 0.2rem 0 0;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.job-linked-resume-btn:hover {
+  background: rgba(96, 165, 250, 0.2);
+}

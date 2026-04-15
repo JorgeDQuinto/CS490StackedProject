@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Document, Page, pdfjs } from "react-pdf";
 import "./DocumentLibrary.css";
 
@@ -19,6 +20,7 @@ const DOCUMENT_TYPES = [
 ];
 
 function DocumentLibrary() {
+  const navigate = useNavigate();
   const [documents, setDocuments] = useState([]);
   const [loadError, setLoadError] = useState("");
   const [docType, setDocType] = useState(DOCUMENT_TYPES[0]);
@@ -1061,10 +1063,16 @@ function DocumentLibrary() {
                     </td>
                     <td>{doc.document_type}</td>
                     <td>
-                      {jobLabel ? (
-                        <span className="doclibrary-linked-job">
+                      {jobLabel && linkedPos ? (
+                        <button
+                          className="doclibrary-linked-job doclibrary-linked-job-btn"
+                          onClick={() =>
+                            navigate(`/?job=${linkedPos.position_id}`)
+                          }
+                          title="Open job card in Dashboard"
+                        >
                           {jobLabel}
-                        </span>
+                        </button>
                       ) : (
                         <span className="doclibrary-unlinked">—</span>
                       )}
