@@ -45,3 +45,6 @@ build/
 temprepo/
 backend/uploads/
 .claude/
+
+# Local-only notes
+PURPOSE.md
