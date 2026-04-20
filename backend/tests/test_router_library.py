@@ -20,9 +20,7 @@ _PROFILE_PAYLOAD = {
 def _register_and_login(client, email: str, password: str = "testpass123"):
     reg = client.post("/auth/register", json={"email": email, "password": password})
     user_id = reg.json()["user_id"]
-    login = client.post(
-        "/auth/login", data={"username": email, "password": password}
-    )
+    login = client.post("/auth/login", data={"username": email, "password": password})
     token = login.json()["access_token"]
     return user_id, {"Authorization": f"Bearer {token}"}
 
@@ -117,7 +115,8 @@ class TestLibraryUploadExtensionValidation:
     def test_exe_returns_415(self, client, user_with_profile):
         _, headers = user_with_profile
         resp = _upload(
-            client, headers,
+            client,
+            headers,
             filename="virus.exe",
             content=b"MZ",
             content_type="application/octet-stream",
@@ -127,7 +126,8 @@ class TestLibraryUploadExtensionValidation:
     def test_zip_returns_415(self, client, user_with_profile):
         _, headers = user_with_profile
         resp = _upload(
-            client, headers,
+            client,
+            headers,
             filename="archive.zip",
             content=b"PK",
             content_type="application/zip",
@@ -137,7 +137,8 @@ class TestLibraryUploadExtensionValidation:
     def test_js_returns_415(self, client, user_with_profile):
         _, headers = user_with_profile
         resp = _upload(
-            client, headers,
+            client,
+            headers,
             filename="script.js",
             content=b"alert(1)",
             content_type="text/javascript",
@@ -152,7 +153,8 @@ class TestLibraryUploadExtensionValidation:
     def test_docx_extension_is_accepted(self, client, user_with_profile):
         _, headers = user_with_profile
         resp = _upload(
-            client, headers,
+            client,
+            headers,
             filename="cv.docx",
             content=b"docx content",
             content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -162,7 +164,8 @@ class TestLibraryUploadExtensionValidation:
     def test_txt_extension_is_accepted(self, client, user_with_profile):
         _, headers = user_with_profile
         resp = _upload(
-            client, headers,
+            client,
+            headers,
             filename="notes.txt",
             content=b"plain text",
             content_type="text/plain",
@@ -172,7 +175,8 @@ class TestLibraryUploadExtensionValidation:
     def test_md_extension_is_accepted(self, client, user_with_profile):
         _, headers = user_with_profile
         resp = _upload(
-            client, headers,
+            client,
+            headers,
             filename="readme.md",
             content=b"# Resume",
             content_type="text/markdown",
@@ -182,7 +186,8 @@ class TestLibraryUploadExtensionValidation:
     def test_415_detail_lists_allowed_types(self, client, user_with_profile):
         _, headers = user_with_profile
         resp = _upload(
-            client, headers,
+            client,
+            headers,
             filename="bad.exe",
             content=b"x",
             content_type="application/octet-stream",
@@ -304,7 +309,8 @@ class TestFilenamesanitisation:
     def test_path_traversal_in_filename_is_stripped(self, client, user_with_profile):
         _, headers = user_with_profile
         resp = _upload(
-            client, headers,
+            client,
+            headers,
             filename="../../etc/passwd.txt",
             content=b"data",
             content_type="text/plain",
@@ -318,7 +324,8 @@ class TestFilenamesanitisation:
     def test_null_byte_in_filename_is_stripped(self, client, user_with_profile):
         _, headers = user_with_profile
         resp = _upload(
-            client, headers,
+            client,
+            headers,
             filename="resume\x00.pdf",
             content=b"data",
         )
