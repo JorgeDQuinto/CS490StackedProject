@@ -180,6 +180,8 @@ class DocumentCreate(BaseModel):
     job_id: int | None = None
     document_name: str | None = None
     content: str | None = None
+    status: str | None = None
+    tags: str | None = None
 
 
 class DocumentResponse(BaseModel):
@@ -192,6 +194,31 @@ class DocumentResponse(BaseModel):
     document_location: str | None = None
     content: str | None = None
     job_id: int | None = None
+    status: str | None = None
+    tags: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    is_archived: bool = False
+
+
+class DocumentVersionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    version_id: int
+    doc_id: int
+    version_number: int
+    content: str | None = None
+    document_location: str | None = None
+    created_at: datetime
+
+
+class DocumentJobLinkResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    link_id: int
+    doc_id: int
+    job_id: int
+    linked_at: datetime
 
 
 # --------------------------------------------------------------------------- #
