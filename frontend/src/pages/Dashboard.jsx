@@ -102,7 +102,12 @@ function DocViewerModal({ doc, onClose, token }) {
   );
 }
 
-function CompanyResearchSection({ job, token, applications, onApplicationsChange }) {
+function CompanyResearchSection({
+  job,
+  token,
+  applications,
+  onApplicationsChange,
+}) {
   const existingApp = applications?.find(
     (a) => a.position_id === job?.position_id
   );
@@ -1376,11 +1381,11 @@ function Dashboard() {
                   )}
 
                   <CompanyResearchSection
-                  job={selectedJob}
-                  token={token}
-                  applications={applications}
-                  onApplicationsChange={setApplications}
-                />
+                    job={selectedJob}
+                    token={token}
+                    applications={applications}
+                    onApplicationsChange={setApplications}
+                  />
 
                   {token ? (
                     renderActionButtons(selectedJob)

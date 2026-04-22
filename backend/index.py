@@ -41,8 +41,9 @@ async def lifespan(app: FastAPI):
     # Base.metadata.create_all(bind=engine)
 
     # Schema migrations — safe to run on every startup (IF NOT EXISTS guards)
-    from database.database import engine
     from sqlalchemy import text
+
+    from database.database import engine
 
     with engine.connect() as conn:
         conn.execute(
