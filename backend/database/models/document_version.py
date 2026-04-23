@@ -27,7 +27,9 @@ class DocumentVersion(Base):
 
     __tablename__ = "document_version"
 
-    version_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    version_id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
     document_id: Mapped[int] = mapped_column(
         ForeignKey("document.document_id", ondelete="CASCADE"), nullable=False
     )
@@ -66,8 +68,9 @@ def create_document_version(
     """Create the next version for a document (auto-increments version_number)."""
     next_num = (
         session.execute(
-            select(func.coalesce(func.max(DocumentVersion.version_number), 0))
-            .where(DocumentVersion.document_id == document_id)
+            select(func.coalesce(func.max(DocumentVersion.version_number), 0)).where(
+                DocumentVersion.document_id == document_id
+            )
         ).scalar()
         or 0
     ) + 1
@@ -85,9 +88,7 @@ def create_document_version(
     return version
 
 
-def get_document_version(
-    session: Session, version_id: int
-) -> "DocumentVersion | None":
+def get_document_version(session: Session, version_id: int) -> "DocumentVersion | None":
     return session.get(DocumentVersion, version_id)
 
 

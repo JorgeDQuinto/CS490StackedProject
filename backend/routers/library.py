@@ -195,7 +195,9 @@ async def upload_library_document(
         storage_location=dest_path,
         source="upload",
     )
-    update_document(session, document.document_id, current_version_id=version.version_id)
+    update_document(
+        session, document.document_id, current_version_id=version.version_id
+    )
     if tags:
         for raw in tags.split(","):
             label = raw.strip()

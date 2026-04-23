@@ -57,6 +57,7 @@ TERMINAL_OUTCOME_STATES = {"Rejected", "Offer", "Accepted", "Withdrawn"}
 #  Helpers                                                                     #
 # --------------------------------------------------------------------------- #
 
+
 def _latest_snapshot() -> str:
     matches = sorted(glob.glob(os.path.join(BACKUP_DIR, "snapshot_*.json")))
     if not matches:
@@ -88,6 +89,7 @@ def _bump_sequence(conn, table: str, pk_col: str) -> None:
 # --------------------------------------------------------------------------- #
 #  Per-table inserters                                                         #
 # --------------------------------------------------------------------------- #
+
 
 def insert_users(conn, rows):
     _executemany(
@@ -518,9 +520,7 @@ def import_documents_pipeline(
     # ---- 4. set document.current_version_id ---------------------------------
     for doc_id, ver_id in doc_to_latest_version.items():
         conn.execute(
-            text(
-                "UPDATE document SET current_version_id = :v WHERE document_id = :d"
-            ),
+            text("UPDATE document SET current_version_id = :v WHERE document_id = :d"),
             {"v": ver_id, "d": doc_id},
         )
 
@@ -653,9 +653,7 @@ def import_documents_pipeline(
         ).scalar_one()
 
         conn.execute(
-            text(
-                "UPDATE document SET current_version_id = :v WHERE document_id = :d"
-            ),
+            text("UPDATE document SET current_version_id = :v WHERE document_id = :d"),
             {"v": new_version_id, "d": new_document_id},
         )
         conn.execute(
@@ -683,6 +681,7 @@ def import_documents_pipeline(
 #  Main                                                                        #
 # --------------------------------------------------------------------------- #
 
+
 def main(argv: list[str]) -> int:
     snapshot_path = argv[1] if len(argv) > 1 else _latest_snapshot()
     print(f"Loading {snapshot_path}")
@@ -692,7 +691,9 @@ def main(argv: list[str]) -> int:
     address_map = {a["address_id"]: a for a in snap.get("address", [])}
     outcome_by_legacy_job = {o["job_id"]: o for o in snap.get("outcome", [])}
     valid_job_ids = {j["legacy_job_id"] for j in snap.get("applied_jobs", [])}
-    job_user_map = {j["legacy_job_id"]: j["user_id"] for j in snap.get("applied_jobs", [])}
+    job_user_map = {
+        j["legacy_job_id"]: j["user_id"] for j in snap.get("applied_jobs", [])
+    }
 
     legacy_counts = snap.get("_meta", {}).get("row_counts", {})
 
@@ -710,9 +711,15 @@ def main(argv: list[str]) -> int:
         insert_career_prefs(conn, snap.get("career_preferences", []))
 
         insert_jobs(conn, snap.get("applied_jobs", []), outcome_by_legacy_job)
-        skipped_activity = insert_job_activity(conn, snap.get("job_activity", []), valid_job_ids)
-        skipped_interview = insert_interviews(conn, snap.get("interview", []), valid_job_ids)
-        skipped_followup = insert_follow_ups(conn, snap.get("follow_up", []), valid_job_ids)
+        skipped_activity = insert_job_activity(
+            conn, snap.get("job_activity", []), valid_job_ids
+        )
+        skipped_interview = insert_interviews(
+            conn, snap.get("interview", []), valid_job_ids
+        )
+        skipped_followup = insert_follow_ups(
+            conn, snap.get("follow_up", []), valid_job_ids
+        )
 
         doc_stats = import_documents_pipeline(
             conn,
@@ -752,29 +759,58 @@ def main(argv: list[str]) -> int:
     expectations = [
         ("user", "user", legacy_counts.get("user", 0)),
         ("credentials", "credentials", legacy_counts.get("credentials", 0)),
-        ("password_reset_token", "password_reset_token", legacy_counts.get("password_reset_token", 0)),
+        (
+            "password_reset_token",
+            "password_reset_token",
+            legacy_counts.get("password_reset_token", 0),
+        ),
         ("token_blacklist", "token_blacklist", legacy_counts.get("token_blacklist", 0)),
         ("profile", "profile", legacy_counts.get("profile", 0)),
         ("education", "education", legacy_counts.get("education", 0)),
         ("experience", "experience", legacy_counts.get("experience", 0)),
         ("skills", "skill", legacy_counts.get("skills", 0)),
-        ("career_preferences", "career_preferences", legacy_counts.get("career_preferences", 0)),
+        (
+            "career_preferences",
+            "career_preferences",
+            legacy_counts.get("career_preferences", 0),
+        ),
         ("applied_jobs", "job", legacy_counts.get("applied_jobs", 0)),
-        ("job_activity", "job_activity", legacy_counts.get("job_activity", 0) - skipped_activity),
-        ("interview", "interview", legacy_counts.get("interview", 0) - skipped_interview),
-        ("follow_up", "follow_up", legacy_counts.get("follow_up", 0) - skipped_followup),
-        ("documents (+ai_drafts)", "document",
-            legacy_counts.get("documents", 0) + doc_stats["ai_drafts_created"]),
+        (
+            "job_activity",
+            "job_activity",
+            legacy_counts.get("job_activity", 0) - skipped_activity,
+        ),
+        (
+            "interview",
+            "interview",
+            legacy_counts.get("interview", 0) - skipped_interview,
+        ),
+        (
+            "follow_up",
+            "follow_up",
+            legacy_counts.get("follow_up", 0) - skipped_followup,
+        ),
+        (
+            "documents (+ai_drafts)",
+            "document",
+            legacy_counts.get("documents", 0) + doc_stats["ai_drafts_created"],
+        ),
     ]
 
     with engine.connect() as conn:
         for legacy_label, v2_table, expected in expectations:
-            actual = conn.execute(text(f'SELECT COUNT(*) FROM "{v2_table}"')).scalar_one()
+            actual = conn.execute(
+                text(f'SELECT COUNT(*) FROM "{v2_table}"')
+            ).scalar_one()
             status = "ok" if actual == expected else "MISMATCH"
-            print(f"  [{status}] {legacy_label:<24} expected={expected:>4}  actual={actual:>4}")
+            print(
+                f"  [{status}] {legacy_label:<24} expected={expected:>4}  actual={actual:>4}"
+            )
         # Pure-v2 tables (no direct 1:1 source)
         for v2_table in ("document_version", "document_tag", "job_document_link"):
-            actual = conn.execute(text(f'SELECT COUNT(*) FROM "{v2_table}"')).scalar_one()
+            actual = conn.execute(
+                text(f'SELECT COUNT(*) FROM "{v2_table}"')
+            ).scalar_one()
             print(f"  [info] {v2_table:<24} actual={actual:>4}")
 
     print()

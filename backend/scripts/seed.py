@@ -4,6 +4,7 @@ skills, career preferences, and a handful of jobs across pipeline stages.
 Run after schema_v2.sql against an empty DB:
     python backend/scripts/seed.py
 """
+
 from __future__ import annotations
 
 import os
@@ -116,10 +117,28 @@ def main() -> int:
 
         jobs_seed = [
             ("Software Engineer", "Google", "Mountain View, CA", "Interested", None),
-            ("Backend Engineer", "Microsoft", "Redmond, WA", "Applied", date(2026, 1, 22)),
+            (
+                "Backend Engineer",
+                "Microsoft",
+                "Redmond, WA",
+                "Applied",
+                date(2026, 1, 22),
+            ),
             ("Senior Engineer", "Stripe", "Remote", "Interview", date(2026, 2, 10)),
-            ("Full Stack Engineer", "Netflix", "Los Gatos, CA", "Offer", date(2026, 1, 30)),
-            ("Software Developer", "Meta", "Menlo Park, CA", "Rejected", date(2026, 1, 5)),
+            (
+                "Full Stack Engineer",
+                "Netflix",
+                "Los Gatos, CA",
+                "Offer",
+                date(2026, 1, 30),
+            ),
+            (
+                "Software Developer",
+                "Meta",
+                "Menlo Park, CA",
+                "Rejected",
+                date(2026, 1, 5),
+            ),
         ]
         for title, company, location, stage, applied in jobs_seed:
             job = create_job(
@@ -131,11 +150,11 @@ def main() -> int:
                 stage=stage,
                 application_date=applied,
                 years_of_experience=1,
-                notes="Referral via mutual connection." if company == "Google" else None,
+                notes="Referral via mutual connection."
+                if company == "Google"
+                else None,
             )
-            create_job_activity(
-                session, job.job_id, to_stage=stage, notes="Seeded"
-            )
+            create_job_activity(session, job.job_id, to_stage=stage, notes="Seeded")
             print(f"  job_id={job.job_id}  {company} — {title}  [{stage}]")
 
             if stage == "Interview":

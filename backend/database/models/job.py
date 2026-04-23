@@ -62,7 +62,9 @@ class Job(Base):
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     stage: Mapped[str] = mapped_column(String(50), nullable=False, default="Interested")
-    stage_changed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    stage_changed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
     application_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     deadline: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     priority: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)

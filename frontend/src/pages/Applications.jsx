@@ -446,7 +446,9 @@ function ApplicationCard({ job, onRemove, onStageChange }) {
             <span className="app-card-company">{job.company_name}</span>
           )}
           {job.application_date && (
-            <span className="app-card-meta">Applied {job.application_date}</span>
+            <span className="app-card-meta">
+              Applied {job.application_date}
+            </span>
           )}
           {job.years_of_experience !== null &&
             job.years_of_experience !== undefined && (
@@ -552,7 +554,9 @@ function ApplicationCard({ job, onRemove, onStageChange }) {
                     }))
                   }
                 />
-                <label className="details-label">Contact / Recruiter Notes</label>
+                <label className="details-label">
+                  Contact / Recruiter Notes
+                </label>
                 <textarea
                   className="details-textarea"
                   value={detailValues.notes}
@@ -1121,8 +1125,7 @@ function HistoryOverlay({ jobs, onClose, onRestore }) {
                 (isWithdrawnEntry && isCurrentlyWithdrawn);
               const meta =
                 EVENT_TYPE_META[a.event_type] || EVENT_TYPE_META.stage_change;
-              const dotColor =
-                meta.color || STATUS_COLOR[stageLabel] || "#888";
+              const dotColor = meta.color || STATUS_COLOR[stageLabel] || "#888";
               return (
                 <li key={`${a.activity_id}-${i}`} className="history-item">
                   <span
@@ -1294,7 +1297,9 @@ function AddJobModal({ onClose, onAdded }) {
               className="app-stage-select"
               style={{ width: "100%", boxSizing: "border-box" }}
               value={form.stage}
-              onChange={(e) => setForm((p) => ({ ...p, stage: e.target.value }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, stage: e.target.value }))
+              }
             >
               {STAGES.map((s) => (
                 <option key={s} value={s}>

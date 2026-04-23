@@ -747,8 +747,7 @@ function Profile() {
                   {edu.degree} in {edu.field_of_study}
                 </p>
                 <p style={styles.itemSecondary}>
-                  {edu.school} · {edu.start_date}–
-                  {edu.end_date || "Present"}
+                  {edu.school} · {edu.start_date}–{edu.end_date || "Present"}
                   {edu.gpa ? ` · GPA: ${edu.gpa}` : ""}
                 </p>
               </div>

@@ -261,7 +261,9 @@ function DocumentLibrary() {
       { caller: "DocumentLibrary.handleArchive", action: "archive_document" }
     );
     if (res.ok) {
-      setUploadSuccess(newDeleted ? "Document archived." : "Document restored.");
+      setUploadSuccess(
+        newDeleted ? "Document archived." : "Document restored."
+      );
       setTimeout(() => setUploadSuccess(""), 3000);
       fetchDocuments();
     }
@@ -271,7 +273,10 @@ function DocumentLibrary() {
     const res = await api.post(
       `/documents/${doc.document_id}/duplicate`,
       {},
-      { caller: "DocumentLibrary.handleDuplicate", action: "duplicate_document" }
+      {
+        caller: "DocumentLibrary.handleDuplicate",
+        action: "duplicate_document",
+      }
     );
     if (res.ok) {
       setUploadSuccess("Document duplicated.");
@@ -898,7 +903,10 @@ function DocumentLibrary() {
             </thead>
             <tbody>
               {sortedDocuments.map((doc) => (
-                <tr key={doc.document_id} style={doc.is_deleted ? { opacity: 0.5 } : {}}>
+                <tr
+                  key={doc.document_id}
+                  style={doc.is_deleted ? { opacity: 0.5 } : {}}
+                >
                   <td>{doc.title}</td>
                   <td>{doc.document_type}</td>
                   <td>

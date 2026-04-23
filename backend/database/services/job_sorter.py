@@ -47,5 +47,7 @@ def get_sorted_jobs(
     else:  # CREATED_AT
         sort_column = Job.created_at
 
-    query = query.order_by(desc(sort_column) if order == SortOrder.DESC else asc(sort_column))
+    query = query.order_by(
+        desc(sort_column) if order == SortOrder.DESC else asc(sort_column)
+    )
     return session.execute(query).scalars().unique().all()

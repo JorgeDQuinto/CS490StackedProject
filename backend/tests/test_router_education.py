@@ -1,7 +1,5 @@
 """Tests for POST /education/ and GET /education/{education_id}."""
 
-from database.models.user import create_user
-
 EDUCATION_URL = "/education"
 
 
@@ -53,9 +51,7 @@ class TestCreateEducation:
         user_id, headers = user_with_auth
         payload = _education_payload(user_id)
         del payload["degree"]
-        response = client.post(
-            f"{EDUCATION_URL}/", json=payload, headers=headers
-        )
+        response = client.post(f"{EDUCATION_URL}/", json=payload, headers=headers)
         assert response.status_code == 422
 
 

@@ -23,7 +23,9 @@ class Document(Base):
 
     __tablename__ = "document"
 
-    document_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    document_id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True
+    )
     user_id: Mapped[int] = mapped_column(ForeignKey("user.user_id"), nullable=False)
 
     title: Mapped[str] = mapped_column(String(255), nullable=False)

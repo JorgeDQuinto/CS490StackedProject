@@ -10,6 +10,7 @@ Architecture:
 File-storage helpers (PDF/DOCX/text extraction + write-back) live in this module
 so the upload + edit workflow keeps its existing semantics.
 """
+
 from __future__ import annotations
 
 import base64
@@ -144,11 +145,19 @@ def _read_file(file_path: str, filename: str) -> dict:
             b64 = base64.b64encode(f.read()).decode("utf-8")
         return {"content": text, "format": "pdf", "binary_data": b64, "editable": True}
     if ext == ".docx":
-        return {"content": _extract_docx_content(file_path), "format": "docx", "editable": True}
+        return {
+            "content": _extract_docx_content(file_path),
+            "format": "docx",
+            "editable": True,
+        }
     if ext in (".txt", ".md"):
         with open(file_path, "r", encoding="utf-8") as f:
             return {"content": f.read(), "format": ext[1:], "editable": True}
-    return {"content": f"[Unsupported file type: {ext}]", "format": "unknown", "editable": False}
+    return {
+        "content": f"[Unsupported file type: {ext}]",
+        "format": "unknown",
+        "editable": False,
+    }
 
 
 def _build_upload_path(
@@ -311,7 +320,11 @@ def hard_delete_document_endpoint(
     hard_delete_document(session, document_id)
 
 
-@router.post("/{document_id}/duplicate", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{document_id}/duplicate",
+    response_model=DocumentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def duplicate_document(
     document_id: int,
     session: Session = Depends(get_db),
@@ -349,9 +362,7 @@ def duplicate_document(
 # --------------------------------------------------------------------------- #
 
 
-@router.get(
-    "/{document_id}/versions", response_model=list[DocumentVersionResponse]
-)
+@router.get("/{document_id}/versions", response_model=list[DocumentVersionResponse])
 def list_versions(
     document_id: int,
     session: Session = Depends(get_db),
@@ -442,15 +453,19 @@ def edit_current_content(
         if doc.current_version_id
         else None
     )
-    if current and current.storage_location and os.path.exists(current.storage_location):
+    if (
+        current
+        and current.storage_location
+        and os.path.exists(current.storage_location)
+    ):
         try:
             _update_file_content(
-                current.storage_location, os.path.basename(current.storage_location), content
+                current.storage_location,
+                os.path.basename(current.storage_location),
+                content,
             )
         except ValueError as e:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
         # Append a new version row with the in-memory text snapshot for history.
         new_version = create_document_version(
             session,
@@ -610,7 +625,9 @@ def delete_link(
         raise HTTPException(status_code=404, detail="Link not found")
     job = get_job(session, link.job_id)
     if not job or job.user_id != current_user.user_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
+        )
     unlink(session, link_id)
 
 
@@ -814,9 +831,7 @@ def generate_cover_letter(
 # --------------------------------------------------------------------------- #
 
 
-@router.post(
-    "/", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("/", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
 def create_document_legacy_path(
     body: DocumentCreate,
     session: Session = Depends(get_db),

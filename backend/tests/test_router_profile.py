@@ -1,6 +1,8 @@
 """Tests for POST /profile/, GET /profile/{id}, and PUT /profile/{id}."""
 
 PROFILE_URL = "/profile"
+
+
 def _profile_payload(user_id, **overrides):
     base = {
         "user_id": user_id,

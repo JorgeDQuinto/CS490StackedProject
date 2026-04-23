@@ -80,9 +80,7 @@ def unlink(session: Session, link_id: int) -> bool:
 
 def get_links_for_job(session: Session, job_id: int) -> list["JobDocumentLink"]:
     rows = (
-        session.execute(
-            select(JobDocumentLink).where(JobDocumentLink.job_id == job_id)
-        )
+        session.execute(select(JobDocumentLink).where(JobDocumentLink.job_id == job_id))
         .scalars()
         .all()
     )

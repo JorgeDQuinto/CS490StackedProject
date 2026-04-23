@@ -858,7 +858,9 @@ function Dashboard() {
                 <div
                   key={job.job_id}
                   className={`job-card ${
-                    selectedJob?.job_id === job.job_id ? "job-card-selected" : ""
+                    selectedJob?.job_id === job.job_id
+                      ? "job-card-selected"
+                      : ""
                   }`}
                   onClick={() => setSelectedJob(job)}
                 >
