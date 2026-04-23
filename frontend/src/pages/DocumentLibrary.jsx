@@ -66,6 +66,7 @@ function DocumentLibrary() {
   const [sortBy, setSortBy] = useState("updated_desc");
 
   const [jobs, setJobs] = useState([]);
+  const [docJobMap, setDocJobMap] = useState({});
   const [deletingId, setDeletingId] = useState(null);
   const [deleteConfirmDoc, setDeleteConfirmDoc] = useState(null);
   const [renameDoc, setRenameDoc] = useState(null);
@@ -125,6 +126,27 @@ function DocumentLibrary() {
         .then((r) => (r.ok ? r.json() : []))
         .then(setJobs)
         .catch(() => setJobs([]));
+      api
+        .get("/documents/links/me", {
+          caller: "DocumentLibrary.useEffect",
+          action: "load_doc_links",
+        })
+        .then((r) => (r.ok ? r.json() : []))
+        .then((links) => {
+          const map = {};
+          for (const l of links) {
+            if (!map[l.document_id]) map[l.document_id] = [];
+            if (!map[l.document_id].some((x) => x.job_id === l.job_id)) {
+              map[l.document_id].push({
+                job_id: l.job_id,
+                job_title: l.job_title,
+                company_name: l.company_name,
+              });
+            }
+          }
+          setDocJobMap(map);
+        })
+        .catch(() => {});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, filterType, filterStatus, filterIncludeArchived]);
@@ -1264,12 +1286,41 @@ function DocumentLibrary() {
               </tr>
             </thead>
             <tbody>
-              {sortedDocuments.map((doc) => (
+              {sortedDocuments.map((doc) => {
+                const linkedJobs = docJobMap[doc.document_id] || [];
+                return (
                 <tr
                   key={doc.document_id}
                   style={doc.is_deleted ? { opacity: 0.5 } : {}}
                 >
-                  <td>{doc.title}</td>
+                  <td>
+                    <div>{doc.title}</div>
+                    {linkedJobs.length > 0 && (
+                      <div style={{ marginTop: "4px", display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                        {linkedJobs.map((lj) => (
+                          <button
+                            key={lj.job_id}
+                            onClick={() =>
+                              navigate(`/applications?job=${lj.job_id}`)
+                            }
+                            title={`Go to ${lj.job_title} @ ${lj.company_name}`}
+                            style={{
+                              background: "none",
+                              border: "1px solid #4f8ef7",
+                              borderRadius: "4px",
+                              color: "#4f8ef7",
+                              cursor: "pointer",
+                              fontSize: "0.72rem",
+                              padding: "1px 6px",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            → {lj.job_title} @ {lj.company_name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </td>
                   <td>{doc.document_type}</td>
                   <td>
                     <select
@@ -1352,7 +1403,8 @@ function DocumentLibrary() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         )}
