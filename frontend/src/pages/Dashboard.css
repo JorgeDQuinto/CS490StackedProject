@@ -1226,6 +1226,33 @@
   color: #93c5fd;
 }
 
+.preview-linked-docs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 0.35rem;
+}
+
+.preview-linked-doc-btn {
+  background: none;
+  border: none;
+  color: #60a5fa;
+  font-size: 0.73rem;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.preview-linked-doc-btn:hover {
+  color: #93c5fd;
+}
+
 /* Linked resume button inside detail panel */
 .job-linked-resume-btn {
   display: inline-block;

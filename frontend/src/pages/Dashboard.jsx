@@ -148,7 +148,7 @@ function Dashboard() {
 
   const fetchJobDocuments = async (jobId) => {
     try {
-      const res = await api.get(`/documents/links/by-job/${jobId}`, {
+      const res = await api.get(`/documents/links/by-job/${jobId}/detailed`, {
         caller: "Dashboard.fetchJobDocuments",
         action: "load_job_documents",
       });
@@ -767,6 +767,36 @@ function Dashboard() {
                   </div>
                 )}
 
+                {jobDocuments.length > 0 && (
+                  <div className="job-detail-section">
+                    <h3>Linked Documents</h3>
+                    {jobDocuments.map((link) => (
+                      <div
+                        key={link.link_id}
+                        style={{
+                          fontSize: "0.85rem",
+                          color: "var(--text-muted)",
+                          marginBottom: "0.25rem",
+                        }}
+                      >
+                        📄{" "}
+                        {link.document_title || `Version #${link.version_id}`}
+                        {link.role && (
+                          <span
+                            style={{
+                              marginLeft: "0.5rem",
+                              opacity: 0.6,
+                              textTransform: "capitalize",
+                            }}
+                          >
+                            ({link.role.replace("_", " ")})
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {renderActionButtons(selectedJob)}
               </div>
             )}
@@ -820,6 +850,36 @@ function Dashboard() {
                     <div className="job-detail-section">
                       <h3>Outcome</h3>
                       <p>{selectedJob.outcome_notes}</p>
+                    </div>
+                  )}
+
+                  {jobDocuments.length > 0 && (
+                    <div className="job-detail-section">
+                      <h3>Linked Documents</h3>
+                      {jobDocuments.map((link) => (
+                        <div
+                          key={link.link_id}
+                          style={{
+                            fontSize: "0.85rem",
+                            color: "var(--text-muted)",
+                            marginBottom: "0.25rem",
+                          }}
+                        >
+                          📄{" "}
+                          {link.document_title || `Version #${link.version_id}`}
+                          {link.role && (
+                            <span
+                              style={{
+                                marginLeft: "0.5rem",
+                                opacity: 0.6,
+                                textTransform: "capitalize",
+                              }}
+                            >
+                              ({link.role.replace("_", " ")})
+                            </span>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
 

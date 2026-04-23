@@ -705,6 +705,102 @@ def list_links_for_job(
     return get_links_for_job(session, job_id)
 
 
+@router.get("/links/by-job/{job_id}/detailed")
+def list_links_for_job_detailed(
+    job_id: int,
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Enriched version of /links/by-job that includes document title and type."""
+    from sqlalchemy import select as sa_select
+
+    from database.models.document import Document
+    from database.models.document_version import DocumentVersion
+    from database.models.job_document_link import JobDocumentLink
+
+    job = get_job(session, job_id)
+    if not job or job.user_id != current_user.user_id:
+        raise HTTPException(status_code=404, detail="Job not found")
+    rows = session.execute(
+        sa_select(
+            JobDocumentLink.link_id,
+            JobDocumentLink.job_id,
+            JobDocumentLink.version_id,
+            JobDocumentLink.role,
+            JobDocumentLink.linked_at,
+            Document.document_id,
+            Document.title.label("document_title"),
+            Document.document_type,
+        )
+        .join(DocumentVersion, JobDocumentLink.version_id == DocumentVersion.version_id)
+        .join(Document, DocumentVersion.document_id == Document.document_id)
+        .where(JobDocumentLink.job_id == job_id)
+        .where(Document.is_deleted.is_(False))
+    ).all()
+    return [
+        {
+            "link_id": r.link_id,
+            "job_id": r.job_id,
+            "version_id": r.version_id,
+            "role": r.role,
+            "linked_at": r.linked_at.isoformat() if r.linked_at else None,
+            "document_id": r.document_id,
+            "document_title": r.document_title,
+            "document_type": r.document_type,
+        }
+        for r in rows
+    ]
+
+
+@router.get("/links/me")
+def list_my_links(
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """All document-job links for the current user, enriched with doc + job metadata."""
+    from sqlalchemy import select as sa_select
+
+    from database.models.document import Document
+    from database.models.document_version import DocumentVersion
+    from database.models.job import Job
+    from database.models.job_document_link import JobDocumentLink
+
+    rows = session.execute(
+        sa_select(
+            JobDocumentLink.link_id,
+            JobDocumentLink.job_id,
+            JobDocumentLink.version_id,
+            JobDocumentLink.role,
+            JobDocumentLink.linked_at,
+            Document.document_id,
+            Document.title.label("document_title"),
+            Document.document_type,
+            Job.title.label("job_title"),
+            Job.company_name,
+        )
+        .join(DocumentVersion, JobDocumentLink.version_id == DocumentVersion.version_id)
+        .join(Document, DocumentVersion.document_id == Document.document_id)
+        .join(Job, JobDocumentLink.job_id == Job.job_id)
+        .where(Document.user_id == current_user.user_id)
+        .where(Document.is_deleted.is_(False))
+    ).all()
+    return [
+        {
+            "link_id": r.link_id,
+            "job_id": r.job_id,
+            "version_id": r.version_id,
+            "role": r.role,
+            "linked_at": r.linked_at.isoformat() if r.linked_at else None,
+            "document_id": r.document_id,
+            "document_title": r.document_title,
+            "document_type": r.document_type,
+            "job_title": r.job_title,
+            "company_name": r.company_name,
+        }
+        for r in rows
+    ]
+
+
 # --------------------------------------------------------------------------- #
 #  AI generation (creates a Document + version + optional job link)             #
 # --------------------------------------------------------------------------- #
