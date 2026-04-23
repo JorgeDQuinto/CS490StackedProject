@@ -32,11 +32,6 @@ function DocumentLibrary() {
   const [uploadError, setUploadError] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState("");
 
-  // Filtering / sorting (S3-006)
-  const [filterType, setFilterType] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
-  const [filterIncludeArchived, setFilterIncludeArchived] = useState(false);
-  const [sortBy, setSortBy] = useState("updated_desc");
 
   const [viewingDoc, setViewingDoc] = useState(null);
   const [viewContent, setViewContent] = useState("");
@@ -77,13 +72,7 @@ function DocumentLibrary() {
       return;
     }
     try {
-      const params = new URLSearchParams();
-      if (filterIncludeArchived) params.set("include_archived", "true");
-      if (filterType) params.set("document_type", filterType);
-      if (filterStatus) params.set("status_filter", filterStatus);
-      const url =
-        "/documents/me" + (params.toString() ? `?${params.toString()}` : "");
-      const res = await api.get(url, {
+      const res = await api.get("/documents/me", {
         caller: "DocumentLibrary.fetchDocuments",
         action: "load_documents",
       });
@@ -114,20 +103,7 @@ function DocumentLibrary() {
         .catch(() => setJobs([]));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, filterType, filterStatus, filterIncludeArchived]);
-
-  // Sorting in JS — backend returns updated_at desc by default
-  const sortedDocuments = [...documents].sort((a, b) => {
-    if (sortBy === "updated_desc")
-      return new Date(b.updated_at) - new Date(a.updated_at);
-    if (sortBy === "updated_asc")
-      return new Date(a.updated_at) - new Date(b.updated_at);
-    if (sortBy === "title_asc")
-      return (a.title || "").localeCompare(b.title || "");
-    if (sortBy === "title_desc")
-      return (b.title || "").localeCompare(a.title || "");
-    return 0;
-  });
+  }, [token]);
 
   const handleUpload = async (e) => {
     e.preventDefault();
@@ -828,165 +804,6 @@ function DocumentLibrary() {
         </form>
       </section>
 
-      <section className="doclibrary-list">
-        <div
-          style={{
-            display: "flex",
-            gap: "12px",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-          }}
-        >
-          <h2>Your Documents</h2>
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              title="Filter by type"
-            >
-              <option value="">All types</option>
-              {DOCUMENT_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              title="Filter by status"
-            >
-              <option value="">All statuses</option>
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              title="Sort"
-            >
-              <option value="updated_desc">Newest first</option>
-              <option value="updated_asc">Oldest first</option>
-              <option value="title_asc">Title A→Z</option>
-              <option value="title_desc">Title Z→A</option>
-            </select>
-            <label
-              style={{ display: "flex", alignItems: "center", gap: "4px" }}
-            >
-              <input
-                type="checkbox"
-                checked={filterIncludeArchived}
-                onChange={(e) => setFilterIncludeArchived(e.target.checked)}
-              />
-              Show archived
-            </label>
-          </div>
-        </div>
-        {loadError && <p className="doclibrary-error">{loadError}</p>}
-        {!loadError && sortedDocuments.length === 0 && (
-          <p className="doclibrary-empty">No documents.</p>
-        )}
-        {sortedDocuments.length > 0 && (
-          <table className="doclibrary-table">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Updated</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedDocuments.map((doc) => (
-                <tr
-                  key={doc.document_id}
-                  style={doc.is_deleted ? { opacity: 0.5 } : {}}
-                >
-                  <td>{doc.title}</td>
-                  <td>{doc.document_type}</td>
-                  <td>
-                    <select
-                      value={doc.status}
-                      onChange={(e) => handleStatusChange(doc, e.target.value)}
-                      style={{ padding: "2px 4px" }}
-                    >
-                      {STATUS_OPTIONS.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td>
-                    {doc.updated_at
-                      ? new Date(doc.updated_at).toLocaleDateString()
-                      : "—"}
-                  </td>
-                  <td>
-                    <div className="doclibrary-actions">
-                      <button
-                        className="doclibrary-action-btn doclibrary-view-btn"
-                        onClick={() => handleView(doc)}
-                        disabled={deletingId !== null}
-                        title="View Document"
-                      >
-                        View
-                      </button>
-                      <button
-                        className="doclibrary-action-btn doclibrary-edit-btn"
-                        onClick={() => handleEdit(doc)}
-                        disabled={deletingId !== null}
-                        title="Edit content (creates a new version)"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="doclibrary-action-btn"
-                        onClick={() => handleRename(doc)}
-                        disabled={deletingId !== null}
-                        title="Rename"
-                      >
-                        Rename
-                      </button>
-                      <button
-                        className="doclibrary-action-btn"
-                        onClick={() => handleDuplicate(doc)}
-                        disabled={deletingId !== null}
-                        title="Duplicate"
-                      >
-                        Duplicate
-                      </button>
-                      <button
-                        className="doclibrary-action-btn"
-                        onClick={() => handleArchive(doc)}
-                        disabled={deletingId !== null}
-                        title={doc.is_deleted ? "Restore" : "Archive"}
-                      >
-                        {doc.is_deleted ? "Restore" : "Archive"}
-                      </button>
-                      <button
-                        className="doclibrary-action-btn doclibrary-delete-btn"
-                        onClick={() => handleDelete(doc)}
-                        disabled={deletingId === doc.document_id}
-                        title="Permanently delete"
-                      >
-                        {deletingId === doc.document_id
-                          ? "Deleting…"
-                          : "Delete"}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
     </div>
   );
 }
