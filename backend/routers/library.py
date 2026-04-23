@@ -20,7 +20,9 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from database.auth import get_current_user
-from database.models.documents import create_document
+from database.models.document import create_document, get_document, update_document
+from database.models.document_tag import add_tag
+from database.models.document_version import create_document_version
 from database.models.profile import get_profile_by_user_id
 from database.models.user import User
 from schemas import DocumentResponse
@@ -180,21 +182,34 @@ async def upload_library_document(
             detail="Could not save the uploaded file. Please try again.",
         )
 
-    # ── 6. Create the database record ─────────────────────────────────────────
+    # ── 6. Create the v2 document + initial version + tags ───────────────────
     document = create_document(
         session,
         current_user.user_id,
-        document_type,
-        document_location=dest_path,
-        document_name=safe_name,
-        tags=tags,
+        title=safe_name,
+        document_type=document_type,
     )
+    version = create_document_version(
+        session,
+        document.document_id,
+        storage_location=dest_path,
+        source="upload",
+    )
+    update_document(
+        session, document.document_id, current_version_id=version.version_id
+    )
+    if tags:
+        for raw in tags.split(","):
+            label = raw.strip()
+            if label:
+                add_tag(session, document.document_id, label)
+    document = get_document(session, document.document_id)
 
     logger.info(
         "Library upload: document stored",
         extra={
             "user_id": current_user.user_id,
-            "doc_id": document.doc_id,
+            "document_id": document.document_id,
             "upload_filename": safe_name,
             "size_bytes": len(contents),
             "document_type": document_type,

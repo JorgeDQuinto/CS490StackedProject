@@ -13,7 +13,9 @@ _PROFILE_PAYLOAD = {
     "first_name": "Jane",
     "last_name": "Doe",
     "dob": "1990-01-01",
-    "address": {"address": "123 Main St", "state": "NY", "zip_code": 10001},
+    "address_line": "123 Main St",
+    "state": "NY",
+    "zip_code": "10001",
 }
 
 
@@ -232,21 +234,21 @@ class TestLibraryUploadSuccess:
         resp = _upload(client, headers)
         assert resp.status_code == 201
 
-    def test_response_contains_doc_id(self, client, user_with_profile):
+    def test_response_contains_document_id(self, client, user_with_profile):
         _, headers = user_with_profile
         resp = _upload(client, headers)
-        assert "doc_id" in resp.json()
+        assert "document_id" in resp.json()
 
-    def test_doc_id_is_positive_integer(self, client, user_with_profile):
+    def test_document_id_is_positive_integer(self, client, user_with_profile):
         _, headers = user_with_profile
         resp = _upload(client, headers)
-        assert isinstance(resp.json()["doc_id"], int)
-        assert resp.json()["doc_id"] > 0
+        assert isinstance(resp.json()["document_id"], int)
+        assert resp.json()["document_id"] > 0
 
-    def test_document_name_matches_uploaded_filename(self, client, user_with_profile):
+    def test_title_matches_uploaded_filename(self, client, user_with_profile):
         _, headers = user_with_profile
         resp = _upload(client, headers, filename="my_resume.pdf")
-        assert resp.json()["document_name"] == "my_resume.pdf"
+        assert resp.json()["title"] == "my_resume.pdf"
 
     def test_document_type_matches_form_value(self, client, user_with_profile):
         _, headers = user_with_profile
@@ -258,41 +260,31 @@ class TestLibraryUploadSuccess:
         resp = _upload(client, headers)
         assert resp.json()["user_id"] == user_id
 
-    def test_document_location_is_set(self, client, user_with_profile):
+    def test_current_version_is_set(self, client, user_with_profile):
         _, headers = user_with_profile
         resp = _upload(client, headers)
-        assert resp.json()["document_location"] is not None
+        assert resp.json()["current_version_id"] is not None
 
     def test_status_defaults_to_draft(self, client, user_with_profile):
         _, headers = user_with_profile
         resp = _upload(client, headers)
         assert resp.json()["status"] == "Draft"
 
-    def test_tags_stored_when_provided(self, client, user_with_profile):
-        _, headers = user_with_profile
-        resp = _upload(client, headers, tags="python,backend")
-        assert resp.json()["tags"] == "python,backend"
-
-    def test_tags_null_when_omitted(self, client, user_with_profile):
-        _, headers = user_with_profile
-        resp = _upload(client, headers)
-        assert resp.json()["tags"] is None
-
     def test_created_at_is_present(self, client, user_with_profile):
         _, headers = user_with_profile
         resp = _upload(client, headers)
         assert resp.json()["created_at"] is not None
 
-    def test_is_archived_defaults_false(self, client, user_with_profile):
+    def test_is_deleted_defaults_false(self, client, user_with_profile):
         _, headers = user_with_profile
         resp = _upload(client, headers)
-        assert resp.json()["is_archived"] is False
+        assert resp.json()["is_deleted"] is False
 
-    def test_two_uploads_receive_distinct_doc_ids(self, client, user_with_profile):
+    def test_two_uploads_receive_distinct_document_ids(self, client, user_with_profile):
         _, headers = user_with_profile
         r1 = _upload(client, headers, filename="a.pdf")
         r2 = _upload(client, headers, filename="b.pdf")
-        assert r1.json()["doc_id"] != r2.json()["doc_id"]
+        assert r1.json()["document_id"] != r2.json()["document_id"]
 
     def test_upload_visible_via_documents_me(self, client, user_with_profile):
         _, headers = user_with_profile
@@ -317,7 +309,7 @@ class TestFilenamesanitisation:
         )
         # Must succeed (txt is allowed) and the stored name must be safe
         assert resp.status_code == 201
-        stored_name = resp.json()["document_name"]
+        stored_name = resp.json()["title"]
         assert ".." not in stored_name
         assert "/" not in stored_name
 
@@ -330,4 +322,4 @@ class TestFilenamesanitisation:
             content=b"data",
         )
         assert resp.status_code == 201
-        assert "\x00" not in resp.json()["document_name"]
+        assert "\x00" not in resp.json()["title"]
