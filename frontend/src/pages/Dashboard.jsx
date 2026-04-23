@@ -122,6 +122,14 @@ function Dashboard() {
   const [filterMinSalary, setFilterMinSalary] = useState("");
   const [filterMaxSalary, setFilterMaxSalary] = useState("");
   const [viewingDoc, setViewingDoc] = useState(null);
+  const [jobDocuments, setJobDocuments] = useState([]);
+  const [editingJob, setEditingJob] = useState(null);
+  const [editFormValues, setEditFormValues] = useState({});
+  const [isSavingJob, setIsSavingJob] = useState(false);
+  const [genDocType, setGenDocType] = useState(null);
+  const [genInstructions, setGenInstructions] = useState("");
+  const [isGeneratingDoc, setIsGeneratingDoc] = useState(false);
+  const [genJobId, setGenJobId] = useState(null);
 
   const jobBoardRef = useRef(null);
   const filterRef = useRef(null);
@@ -136,6 +144,46 @@ function Dashboard() {
       action: "load_jobs",
     });
     if (res.ok) setJobs(await res.json());
+  };
+
+  const fetchJobDocuments = async (jobId) => {
+    try {
+      const res = await api.get(`/documents/links/by-job/${jobId}`, {
+        caller: "Dashboard.fetchJobDocuments",
+        action: "load_job_documents",
+      });
+      if (res.ok) {
+        const links = await res.json();
+        setJobDocuments(links);
+      }
+    } catch {
+      setJobDocuments([]);
+    }
+  };
+
+  const handleSaveJobEdit = async () => {
+    if (!editingJob) return;
+    setIsSavingJob(true);
+    try {
+      const res = await api.put(`/jobs/${editingJob.job_id}`, editFormValues, {
+        caller: "Dashboard.handleSaveJobEdit",
+        action: "update_job",
+      });
+      if (res.ok) {
+        const updatedJob = await res.json();
+        setJobs((prev) =>
+          prev.map((j) => (j.job_id === editingJob.job_id ? updatedJob : j))
+        );
+        setSelectedJob(updatedJob);
+        setEditingJob(null);
+        setActionMessage("Job updated successfully!");
+        setTimeout(() => setActionMessage(""), 3000);
+      }
+    } catch {
+      // handled by api client
+    } finally {
+      setIsSavingJob(false);
+    }
   };
 
   useEffect(() => {
@@ -186,6 +234,7 @@ function Dashboard() {
     const target = jobs.find((j) => String(j.job_id) === jid);
     if (target) {
       setSelectedJob(target);
+      fetchJobDocuments(target.job_id);
       setSearchParams({}, { replace: true });
       setTimeout(
         () => jobBoardRef.current?.scrollIntoView({ behavior: "smooth" }),
@@ -194,41 +243,53 @@ function Dashboard() {
     }
   }, [searchParams, jobs]);
 
-  const handleGenerateAIDoc = async (docType, job_id) => {
-    if (aiGenerating) return;
-    setAiGenerating(true);
+  const handleGenerateAIDoc = (docType, job_id) => {
+    setGenDocType(docType);
+    setGenInstructions("");
+    setGenJobId(job_id);
+  };
+
+  const handleGenerateDocConfirm = async () => {
+    if (!genJobId || !genDocType || isGeneratingDoc) return;
+    setIsGeneratingDoc(true);
     try {
       const endpoint =
-        docType === "Resume"
+        genDocType === "Resume"
           ? "/documents/generate-resume"
           : "/documents/generate-cover-letter";
 
       const res = await api.post(
         endpoint,
-        { job_id },
         {
-          caller: "Dashboard.handleGenerateAIDoc",
-          action: `generate_ai_${docType.toLowerCase().replace(" ", "_")}`,
+          job_id: genJobId,
+          instructions: genInstructions || undefined,
+        },
+        {
+          caller: "Dashboard.handleGenerateDocConfirm",
+          action: `generate_ai_${genDocType.toLowerCase().replace(" ", "_")}`,
         }
       );
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || `Failed to generate AI ${docType}.`);
+        throw new Error(err.detail || `Failed to generate AI ${genDocType}.`);
       }
 
       const docRes = await api.get("/documents/me", {
-        caller: "Dashboard.handleGenerateAIDoc",
+        caller: "Dashboard.handleGenerateDocConfirm",
         action: "refresh_documents",
       });
       if (docRes.ok) setDocuments(await docRes.json());
 
-      setActionMessage(`AI ${docType} generated successfully!`);
+      setActionMessage(`AI ${genDocType} generated successfully!`);
       setTimeout(() => setActionMessage(""), 3000);
+      setGenDocType(null);
+      setGenInstructions("");
+      setGenJobId(null);
     } catch {
       // handled by api client
     } finally {
-      setAiGenerating(false);
+      setIsGeneratingDoc(false);
     }
   };
 
@@ -332,7 +393,7 @@ function Dashboard() {
           disabled={aiGenerating}
           title="Generate AI-powered resume tailored to this job"
         >
-          {aiGenerating ? "Generating…" : "Generate Resume"}
+          {aiGenerating ? "Generating…" : "Generate AI Resume"}
         </button>
         <button
           className="job-ai-btn job-ai-btn--cover"
@@ -340,14 +401,7 @@ function Dashboard() {
           disabled={aiGenerating}
           title="Generate AI-powered cover letter tailored to this job"
         >
-          {aiGenerating ? "Generating…" : "Generate Cover Letter"}
-        </button>
-        <button
-          className="job-ai-btn job-ai-btn--improve"
-          onClick={() => navigate("/documents")}
-          title="Browse and improve existing documents"
-        >
-          Document Library
+          {aiGenerating ? "Generating…" : "Generate AI Cover Letter"}
         </button>
       </div>
       <button
@@ -566,7 +620,10 @@ function Dashboard() {
                       ? "job-card-selected"
                       : ""
                   }`}
-                  onClick={() => setSelectedJob(job)}
+                  onClick={() => {
+                    setSelectedJob(job);
+                    fetchJobDocuments(job.job_id);
+                  }}
                   style={{
                     boxShadow: job.deadline
                       ? (() => {
@@ -618,8 +675,43 @@ function Dashboard() {
                 <button
                   className="expand-btn"
                   onClick={() => setExpandedJob(true)}
+                  style={{
+                    position: "absolute",
+                    top: "0.5rem",
+                    left: "0.5rem",
+                    fontSize: "0.75rem",
+                    padding: "0.25rem 0.5rem",
+                  }}
                 >
                   &lt; Expand
+                </button>
+                <button
+                  className="expand-btn"
+                  onClick={() => {
+                    setEditingJob(selectedJob);
+                    setEditFormValues({
+                      title: selectedJob.title || "",
+                      company_name: selectedJob.company_name || "",
+                      location: selectedJob.location || "",
+                      location_type: selectedJob.location_type || "",
+                      salary: selectedJob.salary || "",
+                      years_of_experience:
+                        selectedJob.years_of_experience || "",
+                      description: selectedJob.description || "",
+                      notes: selectedJob.notes || "",
+                      application_date: selectedJob.application_date || "",
+                      deadline: selectedJob.deadline || "",
+                      source_url: selectedJob.source_url || "",
+                    });
+                  }}
+                  style={{
+                    position: "absolute",
+                    top: "0.75rem",
+                    right: "0.75rem",
+                    left: "auto",
+                  }}
+                >
+                  Edit
                 </button>
                 <h2 className="job-detail-title">
                   {selectedJob.title} @ {selectedJob.company_name}
@@ -735,6 +827,596 @@ function Dashboard() {
                 </div>
               </div>
             )}
+
+            {editingJob && (
+              <div
+                className="expand-overlay"
+                onClick={() => setEditingJob(null)}
+              >
+                <div
+                  className="expand-modal"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    className="expand-close-btn"
+                    onClick={() => setEditingJob(null)}
+                    title="Close"
+                  >
+                    &times;
+                  </button>
+                  <h2
+                    className="job-detail-title"
+                    style={{ marginBottom: "1.5rem" }}
+                  >
+                    Edit Job
+                  </h2>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "1.25rem",
+                    }}
+                  >
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Job Title
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormValues.title}
+                        onChange={(e) =>
+                          setEditFormValues((prev) => ({
+                            ...prev,
+                            title: e.target.value,
+                          }))
+                        }
+                        style={{
+                          width: "100%",
+                          padding: "0.75rem",
+                          borderRadius: "6px",
+                          border: "1px solid var(--border)",
+                          background: "var(--surface-2)",
+                          color: "var(--text)",
+                          fontSize: "0.95rem",
+                          boxSizing: "border-box",
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Company
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormValues.company_name}
+                        onChange={(e) =>
+                          setEditFormValues((prev) => ({
+                            ...prev,
+                            company_name: e.target.value,
+                          }))
+                        }
+                        style={{
+                          width: "100%",
+                          padding: "0.75rem",
+                          borderRadius: "6px",
+                          border: "1px solid var(--border)",
+                          background: "var(--surface-2)",
+                          color: "var(--text)",
+                          fontSize: "0.95rem",
+                          boxSizing: "border-box",
+                        }}
+                      />
+                    </div>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: "1rem",
+                      }}
+                    >
+                      <div>
+                        <label
+                          style={{
+                            display: "block",
+                            marginBottom: "0.5rem",
+                            fontWeight: 600,
+                          }}
+                        >
+                          Location
+                        </label>
+                        <input
+                          type="text"
+                          value={editFormValues.location}
+                          onChange={(e) =>
+                            setEditFormValues((prev) => ({
+                              ...prev,
+                              location: e.target.value,
+                            }))
+                          }
+                          placeholder="e.g. New York, NY"
+                          style={{
+                            width: "100%",
+                            padding: "0.75rem",
+                            borderRadius: "6px",
+                            border: "1px solid var(--border)",
+                            background: "var(--surface-2)",
+                            color: "var(--text)",
+                            fontSize: "0.95rem",
+                            boxSizing: "border-box",
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label
+                          style={{
+                            display: "block",
+                            marginBottom: "0.5rem",
+                            fontWeight: 600,
+                          }}
+                        >
+                          Location Type
+                        </label>
+                        <select
+                          value={editFormValues.location_type || ""}
+                          onChange={(e) =>
+                            setEditFormValues((prev) => ({
+                              ...prev,
+                              location_type: e.target.value,
+                            }))
+                          }
+                          style={{
+                            width: "100%",
+                            padding: "0.75rem",
+                            borderRadius: "6px",
+                            border: "1px solid var(--border)",
+                            background: "var(--surface-2)",
+                            color: "var(--text)",
+                            fontSize: "0.95rem",
+                            boxSizing: "border-box",
+                          }}
+                        >
+                          <option value="">Select...</option>
+                          <option value="Remote">Remote</option>
+                          <option value="Onsite">Onsite</option>
+                          <option value="Hybrid">Hybrid</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: "1rem",
+                      }}
+                    >
+                      <div>
+                        <label
+                          style={{
+                            display: "block",
+                            marginBottom: "0.5rem",
+                            fontWeight: 600,
+                          }}
+                        >
+                          Salary
+                        </label>
+                        <input
+                          type="number"
+                          value={editFormValues.salary}
+                          onChange={(e) =>
+                            setEditFormValues((prev) => ({
+                              ...prev,
+                              salary: e.target.value,
+                            }))
+                          }
+                          placeholder="e.g. 120000"
+                          style={{
+                            width: "100%",
+                            padding: "0.75rem",
+                            borderRadius: "6px",
+                            border: "1px solid var(--border)",
+                            background: "var(--surface-2)",
+                            color: "var(--text)",
+                            fontSize: "0.95rem",
+                            boxSizing: "border-box",
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label
+                          style={{
+                            display: "block",
+                            marginBottom: "0.5rem",
+                            fontWeight: 600,
+                          }}
+                        >
+                          Years of Experience Required
+                        </label>
+                        <input
+                          type="number"
+                          value={editFormValues.years_of_experience || ""}
+                          onChange={(e) =>
+                            setEditFormValues((prev) => ({
+                              ...prev,
+                              years_of_experience: e.target.value,
+                            }))
+                          }
+                          placeholder="e.g. 5"
+                          style={{
+                            width: "100%",
+                            padding: "0.75rem",
+                            borderRadius: "6px",
+                            border: "1px solid var(--border)",
+                            background: "var(--surface-2)",
+                            color: "var(--text)",
+                            fontSize: "0.95rem",
+                            boxSizing: "border-box",
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: "1rem",
+                      }}
+                    >
+                      <div>
+                        <label
+                          style={{
+                            display: "block",
+                            marginBottom: "0.5rem",
+                            fontWeight: 600,
+                          }}
+                        >
+                          Application Date
+                        </label>
+                        <input
+                          type="date"
+                          value={editFormValues.application_date || ""}
+                          onChange={(e) =>
+                            setEditFormValues((prev) => ({
+                              ...prev,
+                              application_date: e.target.value,
+                            }))
+                          }
+                          style={{
+                            width: "100%",
+                            padding: "0.75rem",
+                            borderRadius: "6px",
+                            border: "1px solid var(--border)",
+                            background: "var(--surface-2)",
+                            color: "var(--text)",
+                            fontSize: "0.95rem",
+                            boxSizing: "border-box",
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label
+                          style={{
+                            display: "block",
+                            marginBottom: "0.5rem",
+                            fontWeight: 600,
+                          }}
+                        >
+                          Application Deadline
+                        </label>
+                        <input
+                          type="date"
+                          value={editFormValues.deadline}
+                          onChange={(e) =>
+                            setEditFormValues((prev) => ({
+                              ...prev,
+                              deadline: e.target.value,
+                            }))
+                          }
+                          style={{
+                            width: "100%",
+                            padding: "0.75rem",
+                            borderRadius: "6px",
+                            border: "1px solid var(--border)",
+                            background: "var(--surface-2)",
+                            color: "var(--text)",
+                            fontSize: "0.95rem",
+                            boxSizing: "border-box",
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Job Description
+                      </label>
+                      <textarea
+                        value={editFormValues.description}
+                        onChange={(e) =>
+                          setEditFormValues((prev) => ({
+                            ...prev,
+                            description: e.target.value,
+                          }))
+                        }
+                        rows={4}
+                        style={{
+                          width: "100%",
+                          padding: "0.75rem",
+                          borderRadius: "6px",
+                          border: "1px solid var(--border)",
+                          background: "var(--surface-2)",
+                          color: "var(--text)",
+                          fontSize: "0.95rem",
+                          boxSizing: "border-box",
+                          fontFamily: "inherit",
+                          resize: "vertical",
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Notes
+                      </label>
+                      <textarea
+                        value={editFormValues.notes}
+                        onChange={(e) =>
+                          setEditFormValues((prev) => ({
+                            ...prev,
+                            notes: e.target.value,
+                          }))
+                        }
+                        rows={3}
+                        style={{
+                          width: "100%",
+                          padding: "0.75rem",
+                          borderRadius: "6px",
+                          border: "1px solid var(--border)",
+                          background: "var(--surface-2)",
+                          color: "var(--text)",
+                          fontSize: "0.95rem",
+                          boxSizing: "border-box",
+                          fontFamily: "inherit",
+                          resize: "vertical",
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "0.5rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Job Posting URL
+                      </label>
+                      <input
+                        type="url"
+                        value={editFormValues.source_url}
+                        onChange={(e) =>
+                          setEditFormValues((prev) => ({
+                            ...prev,
+                            source_url: e.target.value,
+                          }))
+                        }
+                        style={{
+                          width: "100%",
+                          padding: "0.75rem",
+                          borderRadius: "6px",
+                          border: "1px solid var(--border)",
+                          background: "var(--surface-2)",
+                          color: "var(--text)",
+                          fontSize: "0.95rem",
+                          boxSizing: "border-box",
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "0.75rem",
+                      marginTop: "2rem",
+                      justifyContent: "flex-end",
+                    }}
+                  >
+                    <button
+                      onClick={() => setEditingJob(null)}
+                      style={{
+                        padding: "0.75rem 1.5rem",
+                        borderRadius: "6px",
+                        border: "1px solid var(--border)",
+                        background: "var(--surface-2)",
+                        color: "var(--text)",
+                        cursor: "pointer",
+                        fontSize: "0.95rem",
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveJobEdit}
+                      disabled={isSavingJob}
+                      style={{
+                        padding: "0.75rem 1.5rem",
+                        borderRadius: "6px",
+                        border: "none",
+                        background: "#4f8ef7",
+                        color: "#fff",
+                        cursor: "pointer",
+                        fontSize: "0.95rem",
+                        opacity: isSavingJob ? 0.6 : 1,
+                      }}
+                    >
+                      {isSavingJob ? "Saving…" : "Save Changes"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {genDocType &&
+              genJobId &&
+              (() => {
+                const genJob = jobs.find((j) => j.job_id === genJobId);
+                return (
+                  <div
+                    className="apply-overlay"
+                    onClick={() => setGenDocType(null)}
+                  >
+                    <div
+                      className="apply-modal"
+                      style={{ maxWidth: "680px" }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="apply-modal-header">
+                        <div>
+                          <h3 className="apply-modal-title">
+                            Generate AI {genDocType}
+                          </h3>
+                        </div>
+                        <button
+                          className="apply-modal-x"
+                          onClick={() => setGenDocType(null)}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div className="apply-modal-divider" />
+                      <div
+                        style={{
+                          padding: "1.5rem",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "1.25rem",
+                        }}
+                      >
+                        <div>
+                          <label
+                            style={{
+                              display: "block",
+                              marginBottom: "0.5rem",
+                              fontWeight: 600,
+                              fontSize: "0.9rem",
+                            }}
+                          >
+                            Target Job
+                          </label>
+                          <div
+                            style={{
+                              padding: "0.75rem",
+                              borderRadius: "6px",
+                              border: "1px solid var(--border)",
+                              background: "var(--surface-2)",
+                              color: "var(--text)",
+                              fontSize: "0.95rem",
+                            }}
+                          >
+                            {genJob
+                              ? `${genJob.title} @ ${genJob.company_name} (${genJob.stage})`
+                              : "Loading..."}
+                          </div>
+                        </div>
+                        <div>
+                          <label
+                            style={{
+                              display: "block",
+                              marginBottom: "0.5rem",
+                              fontWeight: 600,
+                              fontSize: "0.9rem",
+                            }}
+                          >
+                            Additional Instructions{" "}
+                            <span
+                              style={{
+                                fontWeight: 400,
+                                fontSize: "0.85rem",
+                                color: "var(--text-muted)",
+                              }}
+                            >
+                              (optional)
+                            </span>
+                          </label>
+                          <textarea
+                            value={genInstructions}
+                            onChange={(e) => setGenInstructions(e.target.value)}
+                            placeholder={
+                              genDocType === "Resume"
+                                ? "e.g. Emphasize backend experience, target a senior-level role..."
+                                : "e.g. Emphasize leadership experience, formal tone..."
+                            }
+                            rows={4}
+                            style={{
+                              width: "100%",
+                              padding: "0.75rem",
+                              borderRadius: "6px",
+                              border: "1px solid var(--border)",
+                              background: "var(--surface-2)",
+                              color: "var(--text)",
+                              fontSize: "0.95rem",
+                              fontFamily: "inherit",
+                              resize: "vertical",
+                              boxSizing: "border-box",
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div className="apply-modal-actions">
+                        <button
+                          className="apply-modal-cancel"
+                          onClick={() => setGenDocType(null)}
+                          disabled={isGeneratingDoc}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleGenerateDocConfirm}
+                          disabled={isGeneratingDoc}
+                          style={{
+                            padding: "0.6rem 1.4rem",
+                            borderRadius: "6px",
+                            border: "none",
+                            background:
+                              genDocType === "Resume" ? "#22c55e" : "#a855f7",
+                            color: "#fff",
+                            fontFamily: "inherit",
+                            fontSize: "0.9rem",
+                            fontWeight: 600,
+                            cursor: isGeneratingDoc ? "not-allowed" : "pointer",
+                            opacity: isGeneratingDoc ? 0.6 : 1,
+                          }}
+                        >
+                          {isGeneratingDoc
+                            ? "Generating…"
+                            : `Generate ${genDocType}`}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
           </>
         )}
       </div>
