@@ -137,10 +137,7 @@ CREATE TABLE "position" (
     salary         NUMERIC(10,2),
     education_req  VARCHAR(255),
     experience_req VARCHAR(255),
-    description    VARCHAR(2000),
-    deadline       DATE
-    -- Migration for existing databases:
-    --   ALTER TABLE position ADD COLUMN IF NOT EXISTS deadline DATE;
+    description    VARCHAR(2000)
 );
 
 -- -----------------------------------------------------------------------------
@@ -231,7 +228,6 @@ CREATE TABLE documents (
     user_id           INTEGER      NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
     job_id            INTEGER      NULL     REFERENCES applied_jobs(job_id) ON DELETE SET NULL,
     document_name     VARCHAR(255),
-    title             VARCHAR(255),
     document_type     VARCHAR(100) NOT NULL,
     document_location VARCHAR(500),
     content           TEXT,
