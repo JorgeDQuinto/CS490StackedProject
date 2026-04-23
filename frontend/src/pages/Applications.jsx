@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import "./Applications.css";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
 import { api } from "../lib/apiClient";
@@ -74,7 +75,7 @@ function Pipeline({ current }) {
   );
 }
 
-function ApplicationCard({ job, onRemove, onStageChange }) {
+function ApplicationCard({ job, onRemove, onStageChange, isHighlighted, cardRef }) {
   const [expanded, setExpanded] = useState(false);
   const [activity, setActivity] = useState(null);
   const [activityLoaded, setActivityLoaded] = useState(false);
@@ -118,7 +119,7 @@ function ApplicationCard({ job, onRemove, onStageChange }) {
 
   const [showDocs, setShowDocs] = useState(false);
   const [docLinks, setDocLinks] = useState([]);
-  const [docLinksLoaded, setDocLinksLoaded] = useState(false);
+  const [docLinksLoading, setDocLinksLoading] = useState(false);
 
   const [showNotes, setShowNotes] = useState(false);
   const [editingNotes, setEditingNotes] = useState(false);
@@ -387,17 +388,19 @@ function ApplicationCard({ job, onRemove, onStageChange }) {
   };
 
   const loadDocLinks = async () => {
-    if (!showDocs && !docLinksLoaded) {
+    if (!showDocs) {
+      setDocLinksLoading(true);
       try {
-        const res = await api.get(`/documents/links/by-job/${job.job_id}`, {
-          caller: "Applications.loadDocLinks",
-          action: "fetch_doc_links",
-        });
+        const res = await api.get(
+          `/documents/links/by-job/${job.job_id}/detailed`,
+          { caller: "Applications.loadDocLinks", action: "fetch_doc_links" }
+        );
         if (res.ok) setDocLinks(await res.json());
       } catch {
         // leave empty
+      } finally {
+        setDocLinksLoading(false);
       }
-      setDocLinksLoaded(true);
     }
     setShowDocs((v) => !v);
   };
@@ -427,18 +430,20 @@ function ApplicationCard({ job, onRemove, onStageChange }) {
 
   return (
     <div
+      ref={cardRef}
       className="app-card"
       style={{
-        border:
-          job.stage === "Interview"
+        border: isHighlighted
+          ? "2px solid #4f8ef7"
+          : job.stage === "Interview"
             ? "2px solid orange"
             : job.stage === "Offer" || job.stage === "Accepted"
               ? "2px solid green"
               : job.stage === "Rejected" || job.stage === "Withdrawn"
                 ? "2px solid red"
                 : "1px solid #333",
-        boxShadow: "none",
-        transition: "0.2s ease-in-out",
+        boxShadow: isHighlighted ? "0 0 0 3px rgba(79,142,247,0.25)" : "none",
+        transition: "border 0.3s ease, box-shadow 0.3s ease",
       }}
     >
       <div className="app-card-header">
@@ -828,7 +833,9 @@ function ApplicationCard({ job, onRemove, onStageChange }) {
         </button>
         {showDocs && (
           <div className="followup-body">
-            {docLinks.length === 0 ? (
+            {docLinksLoading ? (
+              <p className="followup-empty">Loading…</p>
+            ) : docLinks.length === 0 ? (
               <p className="followup-empty">
                 No documents linked to this job yet. Generate a resume or cover
                 letter from the Dashboard or Document Library.
@@ -838,9 +845,14 @@ function ApplicationCard({ job, onRemove, onStageChange }) {
                 {docLinks.map((link) => (
                   <li key={link.link_id} className="followup-item">
                     <span className="followup-desc">
-                      Version #{link.version_id}
+                      📄 {link.document_title || `Version #${link.version_id}`}
                     </span>
-                    <span className="followup-date">{link.role || "—"}</span>
+                    <span
+                      className="followup-date"
+                      style={{ textTransform: "capitalize" }}
+                    >
+                      {(link.role || "—").replace("_", " ")}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -1440,6 +1452,10 @@ function Applications() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showAddJob, setShowAddJob] = useState(false);
+  const [highlightedId, setHighlightedId] = useState(null);
+  const [autoLinkMsg, setAutoLinkMsg] = useState("");
+  const cardRefs = useRef({});
+  const [searchParams, setSearchParams] = useSearchParams();
   const token = localStorage.getItem("token");
 
   useEffect(() => {
@@ -1469,6 +1485,22 @@ function Applications() {
 
     load();
   }, [token]);
+
+  // Scroll to and highlight a card when navigated here with ?job=<id>
+  useEffect(() => {
+    const jobIdParam = searchParams.get("job");
+    if (!jobIdParam || loading || jobs.length === 0) return;
+    const targetId = Number(jobIdParam);
+    if (!jobs.find((j) => j.job_id === targetId)) return;
+    setFilter("All");
+    setSearch("");
+    setHighlightedId(targetId);
+    setSearchParams({}, { replace: true });
+    setTimeout(() => {
+      cardRefs.current[targetId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+    setTimeout(() => setHighlightedId(null), 3500);
+  }, [searchParams, loading, jobs]);
 
   const filtered = jobs
     .filter((j) => {
@@ -1506,8 +1538,42 @@ function Applications() {
     }
   };
 
-  const handleJobAdded = (newJob) => {
+  const handleJobAdded = async (newJob) => {
     setJobs((prev) => [newJob, ...prev]);
+    try {
+      const docsRes = await api.get("/documents/me", {
+        caller: "Applications.handleJobAdded",
+        action: "fetch_docs_for_autolink",
+      });
+      if (!docsRes.ok) return;
+      const docs = await docsRes.json();
+      const pick = (type) =>
+        [...docs]
+          .filter((d) => d.document_type === type && !d.is_deleted && d.current_version_id)
+          .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))[0];
+      const resume = pick("Resume");
+      const cover = pick("Cover Letter");
+      const toLink = [
+        resume && { version_id: resume.current_version_id, role: "resume" },
+        cover && { version_id: cover.current_version_id, role: "cover_letter" },
+      ].filter(Boolean);
+      await Promise.all(
+        toLink.map(({ version_id, role }) =>
+          api.post(
+            "/documents/links",
+            { job_id: newJob.job_id, version_id, role },
+            { caller: "Applications.handleJobAdded", action: "autolink_doc" }
+          )
+        )
+      );
+      if (toLink.length > 0) {
+        const labels = toLink.map((l) => (l.role === "resume" ? "Resume" : "Cover Letter"));
+        setAutoLinkMsg(`Linked your latest ${labels.join(" & ")} to this job.`);
+        setTimeout(() => setAutoLinkMsg(""), 4000);
+      }
+    } catch {
+      // auto-link is best-effort
+    }
   };
 
   return (
@@ -1542,6 +1608,25 @@ function Applications() {
             )
           }
         />
+      )}
+
+      {autoLinkMsg && (
+        <div style={{
+          position: "fixed",
+          bottom: "1.5rem",
+          right: "1.5rem",
+          background: "#22c55e",
+          color: "#fff",
+          padding: "0.75rem 1.25rem",
+          borderRadius: "8px",
+          fontWeight: 500,
+          fontSize: "0.9rem",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+          zIndex: 9999,
+          animation: "fadeInUp 0.2s ease",
+        }}>
+          ✓ {autoLinkMsg}
+        </div>
       )}
 
       <div className="app-page-header">
@@ -1624,6 +1709,8 @@ function Applications() {
                       )
                     )
                   }
+                  isHighlighted={job.job_id === highlightedId}
+                  cardRef={(el) => { cardRefs.current[job.job_id] = el; }}
                 />
               ))}
             </div>
