@@ -103,182 +103,12 @@ function DocViewerModal({ doc, onClose }) {
   );
 }
 
-function AddJobModal({ onClose, onCreate }) {
-  const [form, setForm] = useState({
-    title: "",
-    company_name: "",
-    location: "",
-    source_url: "",
-    description: "",
-    stage: "Interested",
-    application_date: "",
-    deadline: "",
-    salary: "",
-  });
-  const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  const handleField = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async () => {
-    if (submitting) return;
-    setError("");
-    setSubmitting(true);
-    const body = { ...form };
-    if (!body.application_date) delete body.application_date;
-    if (!body.deadline) delete body.deadline;
-    if (!body.salary) delete body.salary;
-    if (!body.location) delete body.location;
-    if (!body.source_url) delete body.source_url;
-    if (!body.description) delete body.description;
-    const err = await onCreate(body);
-    setSubmitting(false);
-    if (err) setError(err);
-  };
-
-  return (
-    <div className="apply-overlay" onClick={onClose}>
-      <div className="apply-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="apply-modal-header">
-          <h3 className="apply-modal-title">Add Job</h3>
-          <button className="apply-modal-x" onClick={onClose}>
-            ✕
-          </button>
-        </div>
-        <div className="apply-modal-divider" />
-        <div className="apply-modal-fields">
-          <div className="apply-modal-field">
-            <label className="apply-modal-field-label">Job Title *</label>
-            <input
-              className="filter-panel-input"
-              name="title"
-              value={form.title}
-              onChange={handleField}
-              placeholder="Software Engineer"
-              required
-            />
-          </div>
-          <div className="apply-modal-field">
-            <label className="apply-modal-field-label">Company *</label>
-            <input
-              className="filter-panel-input"
-              name="company_name"
-              value={form.company_name}
-              onChange={handleField}
-              placeholder="Acme Corp"
-              required
-            />
-          </div>
-          <div className="apply-modal-field">
-            <label className="apply-modal-field-label">Location</label>
-            <input
-              className="filter-panel-input"
-              name="location"
-              value={form.location}
-              onChange={handleField}
-              placeholder="Remote · NYC"
-            />
-          </div>
-          <div className="apply-modal-field">
-            <label className="apply-modal-field-label">Source URL</label>
-            <input
-              className="filter-panel-input"
-              name="source_url"
-              value={form.source_url}
-              onChange={handleField}
-              placeholder="https://..."
-            />
-          </div>
-          <div className="apply-modal-field">
-            <label className="apply-modal-field-label">Stage</label>
-            <select
-              className="apply-modal-select"
-              name="stage"
-              value={form.stage}
-              onChange={handleField}
-            >
-              {PIPELINE_STAGES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="apply-modal-field">
-            <label className="apply-modal-field-label">Application Date</label>
-            <input
-              className="filter-panel-input"
-              type="date"
-              name="application_date"
-              value={form.application_date}
-              onChange={handleField}
-            />
-          </div>
-          <div className="apply-modal-field">
-            <label className="apply-modal-field-label">Deadline</label>
-            <input
-              className="filter-panel-input"
-              type="date"
-              name="deadline"
-              value={form.deadline}
-              onChange={handleField}
-            />
-          </div>
-          <div className="apply-modal-field">
-            <label className="apply-modal-field-label">Salary</label>
-            <input
-              className="filter-panel-input"
-              type="number"
-              name="salary"
-              value={form.salary}
-              onChange={handleField}
-              placeholder="120000"
-            />
-          </div>
-          <div className="apply-modal-field">
-            <label className="apply-modal-field-label">Description</label>
-            <textarea
-              className="filter-panel-input"
-              name="description"
-              value={form.description}
-              onChange={handleField}
-              placeholder="Job description (paste from posting)…"
-              rows={4}
-            />
-          </div>
-        </div>
-        {error && <p className="apply-modal-error">{error}</p>}
-        <div className="apply-modal-actions">
-          <button
-            className="apply-modal-cancel"
-            onClick={onClose}
-            disabled={submitting}
-          >
-            Cancel
-          </button>
-          <button
-            className="apply-modal-confirm"
-            onClick={handleSubmit}
-            disabled={submitting || !form.title || !form.company_name}
-          >
-            {submitting ? "Saving…" : "Add Job"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function Dashboard() {
   const [jobs, setJobs] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showAddJob, setShowAddJob] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
   const [expandedJob, setExpandedJob] = useState(false);
@@ -363,22 +193,6 @@ function Dashboard() {
       );
     }
   }, [searchParams, jobs]);
-
-  const handleCreateJob = async (body) => {
-    const res = await api.post("/jobs", body, {
-      caller: "Dashboard.handleCreateJob",
-      action: "create_job",
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      return err.detail || "Failed to create job.";
-    }
-    setShowAddJob(false);
-    setActionMessage(`Added ${body.title} @ ${body.company_name}`);
-    setTimeout(() => setActionMessage(""), 3000);
-    await refreshJobs();
-    return null;
-  };
 
   const handleGenerateAIDoc = async (docType, job_id) => {
     if (aiGenerating) return;
@@ -572,12 +386,6 @@ function Dashboard() {
 
   return (
     <div className="dashboard">
-      {showAddJob && (
-        <AddJobModal
-          onClose={() => setShowAddJob(false)}
-          onCreate={handleCreateJob}
-        />
-      )}
       {viewingDoc && (
         <DocViewerModal doc={viewingDoc} onClose={() => setViewingDoc(null)} />
       )}
@@ -637,104 +445,6 @@ function Dashboard() {
         </div>
       )}
 
-      <div className="dashboard-preview-grid">
-        <div className="preview-card preview-card-jobs">
-          <div className="preview-card-header">
-            <h2>Recent Jobs</h2>
-            <button className="view-more-btn" onClick={scrollToJobBoard}>
-              View More →
-            </button>
-          </div>
-          <div className="preview-card-body">
-            {jobs.length === 0 ? (
-              <p className="preview-placeholder">No jobs yet — add one!</p>
-            ) : (
-              [...jobs]
-                .sort((a, b) => b.job_id - a.job_id)
-                .slice(0, 3)
-                .map((job) => (
-                  <div key={job.job_id} className="preview-job-item">
-                    <div className="preview-job-item-top">
-                      <span className="preview-job-company">
-                        {job.company_name}
-                      </span>
-                      <span
-                        className={`preview-status-badge preview-status-${job.stage?.toLowerCase()}`}
-                      >
-                        {job.stage}
-                      </span>
-                    </div>
-                    <span className="preview-job-title">{job.title}</span>
-                  </div>
-                ))
-            )}
-          </div>
-        </div>
-
-        <div className="preview-card preview-card-apps">
-          <div className="preview-card-header">
-            <h2>Applications</h2>
-            <button
-              className="view-more-btn"
-              onClick={() => navigate("/applications")}
-            >
-              View More →
-            </button>
-          </div>
-          <div className="preview-card-body">
-            {jobs.filter((j) => j.stage !== "Interested").length === 0 ? (
-              <p className="preview-placeholder">No active applications.</p>
-            ) : (
-              [...jobs]
-                .filter((j) => j.stage !== "Interested")
-                .sort((a, b) => b.job_id - a.job_id)
-                .slice(0, 3)
-                .map((job) => (
-                  <div key={job.job_id} className="preview-job-item">
-                    <div className="preview-job-item-top">
-                      <span className="preview-job-company">
-                        {job.company_name}
-                      </span>
-                      <span
-                        className={`preview-status-badge preview-status-${job.stage?.toLowerCase()}`}
-                      >
-                        {job.stage}
-                      </span>
-                    </div>
-                    <span className="preview-job-title">{job.title}</span>
-                  </div>
-                ))
-            )}
-          </div>
-        </div>
-
-        <div className="preview-card preview-card-docs">
-          <div className="preview-card-header">
-            <h2>Documents</h2>
-            <button
-              className="view-more-btn"
-              onClick={() => navigate("/documents")}
-            >
-              View More →
-            </button>
-          </div>
-          <div className="preview-card-body">
-            {documents.length === 0 ? (
-              <p className="preview-placeholder">No documents yet.</p>
-            ) : (
-              documents.slice(0, 2).map((doc) => (
-                <div key={doc.document_id} className="preview-job-item">
-                  <span className="preview-job-company">
-                    {doc.document_type}
-                  </span>
-                  <span className="preview-job-title">{doc.title}</span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-
       <div className="job-board-search-row">
         <input
           className="job-board-search"
@@ -744,12 +454,6 @@ function Dashboard() {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
         <div className="job-board-controls">
-          <button
-            className="apply-btn apply-btn--row"
-            onClick={() => setShowAddJob(true)}
-          >
-            + Add Job
-          </button>
           <div className="job-board-filter-wrap" ref={filterRef}>
             <button
               className={`job-board-control-btn${hasActiveFilters ? " job-board-control-btn--active" : ""}`}
@@ -863,6 +567,24 @@ function Dashboard() {
                       : ""
                   }`}
                   onClick={() => setSelectedJob(job)}
+                  style={{
+                    boxShadow: job.deadline
+                      ? (() => {
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          const dl = new Date(job.deadline + "T00:00:00");
+                          const daysLeft = Math.ceil(
+                            (dl - today) / (1000 * 60 * 60 * 24)
+                          );
+                          return daysLeft < 7 && daysLeft >= 0
+                            ? "0 0 12px rgba(239, 68, 68, 0.6)"
+                            : daysLeft < 0
+                              ? "0 0 12px rgba(239, 68, 68, 0.8)"
+                              : undefined;
+                        })()
+                      : undefined,
+                    transition: "all 0.3s ease",
+                  }}
                 >
                   <div className="job-card-top-row">
                     <span className="job-card-company">{job.company_name}</span>
@@ -1002,6 +724,13 @@ function Dashboard() {
                       <p>{selectedJob.notes}</p>
                     </div>
                   )}
+                  {selectedJob.outcome_notes && (
+                    <div className="job-detail-section">
+                      <h3>Outcome</h3>
+                      <p>{selectedJob.outcome_notes}</p>
+                    </div>
+                  )}
+
                   {renderActionButtons(selectedJob)}
                 </div>
               </div>
