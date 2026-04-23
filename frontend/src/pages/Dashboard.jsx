@@ -445,67 +445,6 @@ function Dashboard() {
         </div>
       )}
 
-      <div className="dashboard-preview-grid">
-        <div className="preview-card preview-card-jobs">
-          <div className="preview-card-header">
-            <h2>Recent Jobs</h2>
-            <button className="view-more-btn" onClick={scrollToJobBoard}>
-              View More →
-            </button>
-          </div>
-          <div className="preview-card-body">
-            {jobs.length === 0 ? (
-              <p className="preview-placeholder">No jobs yet — add one!</p>
-            ) : (
-              [...jobs]
-                .sort((a, b) => b.job_id - a.job_id)
-                .slice(0, 3)
-                .map((job) => (
-                  <div key={job.job_id} className="preview-job-item">
-                    <div className="preview-job-item-top">
-                      <span className="preview-job-company">
-                        {job.company_name}
-                      </span>
-                      <span
-                        className={`preview-status-badge preview-status-${job.stage?.toLowerCase()}`}
-                      >
-                        {job.stage}
-                      </span>
-                    </div>
-                    <span className="preview-job-title">{job.title}</span>
-                  </div>
-                ))
-            )}
-          </div>
-        </div>
-
-        <div className="preview-card preview-card-docs">
-          <div className="preview-card-header">
-            <h2>Documents</h2>
-            <button
-              className="view-more-btn"
-              onClick={() => navigate("/documents")}
-            >
-              View More →
-            </button>
-          </div>
-          <div className="preview-card-body">
-            {documents.length === 0 ? (
-              <p className="preview-placeholder">No documents yet.</p>
-            ) : (
-              documents.slice(0, 2).map((doc) => (
-                <div key={doc.document_id} className="preview-job-item">
-                  <span className="preview-job-company">
-                    {doc.document_type}
-                  </span>
-                  <span className="preview-job-title">{doc.title}</span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-
       <div className="job-board-search-row">
         <input
           className="job-board-search"
