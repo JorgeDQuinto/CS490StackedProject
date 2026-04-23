@@ -71,6 +71,15 @@ function DocumentLibrary() {
   const [renameDoc, setRenameDoc] = useState(null);
   const [renamingId, setRenamingId] = useState(null);
   const [newTitle, setNewTitle] = useState("");
+
+  // S3-003: version history modal
+  const [historyDoc, setHistoryDoc] = useState(null);
+  const [versions, setVersions] = useState([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
+  const [restoringVersionId, setRestoringVersionId] = useState(null);
+  const [viewingVersion, setViewingVersion] = useState(null);
+  const [versionContent, setVersionContent] = useState("");
+
   const fileInputRef = useRef(null);
 
   const token = localStorage.getItem("token");
@@ -331,6 +340,75 @@ function DocumentLibrary() {
       { caller: "DocumentLibrary.handleStatusChange", action: "set_status" }
     );
     if (res.ok) fetchDocuments();
+  };
+
+  // S3-003: open the version-history modal for a document and load its versions.
+  const handleOpenHistory = async (doc) => {
+    setHistoryDoc(doc);
+    setVersions([]);
+    setVersionsLoading(true);
+    try {
+      const res = await api.get(`/documents/${doc.document_id}/versions`, {
+        caller: "DocumentLibrary.handleOpenHistory",
+        action: "load_document_versions",
+      });
+      if (res.ok) setVersions(await res.json());
+    } catch {
+      // leave versions empty; modal will show "No versions yet."
+    }
+    setVersionsLoading(false);
+  };
+
+  // S3-003: fetch the content of a specific (non-current) version and open
+  // the nested viewer modal.
+  const handleViewVersion = async (version) => {
+    if (!historyDoc) return;
+    try {
+      const res = await api.get(
+        `/documents/${historyDoc.document_id}/versions/${version.version_id}/content`,
+        {
+          caller: "DocumentLibrary.handleViewVersion",
+          action: "view_document_version",
+        }
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      setVersionContent(data.content || "");
+      setViewingVersion(version);
+    } catch {
+      // silently ignore — user can retry
+    }
+  };
+
+  // S3-003: restore an older version as the current one. Confirms first,
+  // then refreshes both the modal's history doc and the underlying list.
+  const handleRestoreVersion = async (version) => {
+    if (!historyDoc) return;
+    if (
+      !window.confirm(
+        `Restore v${version.version_number} as the current version?`
+      )
+    )
+      return;
+    setRestoringVersionId(version.version_id);
+    try {
+      const res = await api.post(
+        `/documents/${historyDoc.document_id}/versions/${version.version_id}/restore`,
+        {},
+        {
+          caller: "DocumentLibrary.handleRestoreVersion",
+          action: "restore_document_version",
+        }
+      );
+      if (res.ok) {
+        const updated = await res.json();
+        setHistoryDoc(updated);
+        fetchDocuments();
+      }
+    } catch {
+      // silently ignore — user can retry
+    }
+    setRestoringVersionId(null);
   };
 
   const handleDeleteClick = (doc) => {
@@ -938,6 +1016,125 @@ function DocumentLibrary() {
         </div>
       )}
 
+      {/* S3-003: Version history modal */}
+      {historyDoc && (
+        <div className="doclibrary-modal-overlay">
+          <div className="doclibrary-modal" style={{ maxWidth: "640px" }}>
+            <div className="doclibrary-modal-header">
+              <h2>Version history — {historyDoc.title}</h2>
+              <button
+                className="doclibrary-modal-close"
+                onClick={() => setHistoryDoc(null)}
+              >
+                ✕
+              </button>
+            </div>
+            {versionsLoading ? (
+              <p style={{ padding: "1rem" }}>Loading…</p>
+            ) : versions.length === 0 ? (
+              <p style={{ padding: "1rem" }}>No versions yet.</p>
+            ) : (
+              <table className="doclibrary-table" style={{ marginTop: 0 }}>
+                <thead>
+                  <tr>
+                    <th>Version</th>
+                    <th>Source</th>
+                    <th>Saved</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {versions.map((v) => {
+                    const isCurrent =
+                      v.version_id === historyDoc.current_version_id;
+                    return (
+                      <tr key={v.version_id}>
+                        <td>
+                          v{v.version_number}
+                          {isCurrent && (
+                            <span style={{ marginLeft: 6, color: "#22c55e" }}>
+                              · current
+                            </span>
+                          )}
+                        </td>
+                        <td>{v.source || "—"}</td>
+                        <td>{new Date(v.created_at).toLocaleString()}</td>
+                        <td>
+                          <div className="doclibrary-actions">
+                            <button
+                              className="doclibrary-action-btn doclibrary-view-btn"
+                              onClick={() => handleViewVersion(v)}
+                            >
+                              View
+                            </button>
+                            {!isCurrent && (
+                              <button
+                                className="doclibrary-action-btn"
+                                onClick={() => handleRestoreVersion(v)}
+                                disabled={restoringVersionId === v.version_id}
+                              >
+                                {restoringVersionId === v.version_id
+                                  ? "Restoring…"
+                                  : "Restore"}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+            <div className="doclibrary-modal-actions">
+              <button
+                className="doclibrary-cancel-btn"
+                onClick={() => setHistoryDoc(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* S3-003: nested viewer for a specific version's content */}
+      {viewingVersion && (
+        <div className="doclibrary-modal-overlay">
+          <div className="doclibrary-modal">
+            <div className="doclibrary-modal-header">
+              <h2>
+                v{viewingVersion.version_number} —{" "}
+                {historyDoc ? historyDoc.title : ""}
+              </h2>
+              <button
+                className="doclibrary-modal-close"
+                onClick={() => {
+                  setViewingVersion(null);
+                  setVersionContent("");
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="doclibrary-viewer">
+              <pre>{versionContent}</pre>
+            </div>
+            <div className="doclibrary-modal-actions">
+              <button
+                className="doclibrary-close-btn"
+                onClick={() => {
+                  setViewingVersion(null);
+                  setVersionContent("");
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <section className="doclibrary-upload">
         <h2>Upload Document</h2>
         <form onSubmit={handleUpload} className="doclibrary-upload-form">
@@ -1133,6 +1330,14 @@ function DocumentLibrary() {
                         title={doc.is_deleted ? "Restore" : "Archive"}
                       >
                         {doc.is_deleted ? "Restore" : "Archive"}
+                      </button>
+                      <button
+                        className="doclibrary-action-btn"
+                        onClick={() => handleOpenHistory(doc)}
+                        disabled={deletingId !== null}
+                        title="View version history"
+                      >
+                        History
                       </button>
                       <button
                         className="doclibrary-action-btn doclibrary-delete-btn"
