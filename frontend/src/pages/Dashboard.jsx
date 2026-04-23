@@ -771,10 +771,24 @@ function Dashboard() {
                   <div className="job-detail-section">
                     <h3>Linked Documents</h3>
                     {jobDocuments.map((link) => (
-                      <div key={link.link_id} style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>
-                        📄 {link.document_title || `Version #${link.version_id}`}
+                      <div
+                        key={link.link_id}
+                        style={{
+                          fontSize: "0.85rem",
+                          color: "var(--text-muted)",
+                          marginBottom: "0.25rem",
+                        }}
+                      >
+                        📄{" "}
+                        {link.document_title || `Version #${link.version_id}`}
                         {link.role && (
-                          <span style={{ marginLeft: "0.5rem", opacity: 0.6, textTransform: "capitalize" }}>
+                          <span
+                            style={{
+                              marginLeft: "0.5rem",
+                              opacity: 0.6,
+                              textTransform: "capitalize",
+                            }}
+                          >
                             ({link.role.replace("_", " ")})
                           </span>
                         )}
@@ -843,10 +857,24 @@ function Dashboard() {
                     <div className="job-detail-section">
                       <h3>Linked Documents</h3>
                       {jobDocuments.map((link) => (
-                        <div key={link.link_id} style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>
-                          📄 {link.document_title || `Version #${link.version_id}`}
+                        <div
+                          key={link.link_id}
+                          style={{
+                            fontSize: "0.85rem",
+                            color: "var(--text-muted)",
+                            marginBottom: "0.25rem",
+                          }}
+                        >
+                          📄{" "}
+                          {link.document_title || `Version #${link.version_id}`}
                           {link.role && (
-                            <span style={{ marginLeft: "0.5rem", opacity: 0.6, textTransform: "capitalize" }}>
+                            <span
+                              style={{
+                                marginLeft: "0.5rem",
+                                opacity: 0.6,
+                                textTransform: "capitalize",
+                              }}
+                            >
                               ({link.role.replace("_", " ")})
                             </span>
                           )}

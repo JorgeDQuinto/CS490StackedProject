@@ -75,7 +75,13 @@ function Pipeline({ current }) {
   );
 }
 
-function ApplicationCard({ job, onRemove, onStageChange, isHighlighted, cardRef }) {
+function ApplicationCard({
+  job,
+  onRemove,
+  onStageChange,
+  isHighlighted,
+  cardRef,
+}) {
   const [expanded, setExpanded] = useState(false);
   const [activity, setActivity] = useState(null);
   const [activityLoaded, setActivityLoaded] = useState(false);
@@ -1497,7 +1503,10 @@ function Applications() {
     setHighlightedId(targetId);
     setSearchParams({}, { replace: true });
     setTimeout(() => {
-      cardRefs.current[targetId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+      cardRefs.current[targetId]?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
     }, 120);
     setTimeout(() => setHighlightedId(null), 3500);
   }, [searchParams, loading, jobs]);
@@ -1549,7 +1558,10 @@ function Applications() {
       const docs = await docsRes.json();
       const pick = (type) =>
         [...docs]
-          .filter((d) => d.document_type === type && !d.is_deleted && d.current_version_id)
+          .filter(
+            (d) =>
+              d.document_type === type && !d.is_deleted && d.current_version_id
+          )
           .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))[0];
       const resume = pick("Resume");
       const cover = pick("Cover Letter");
@@ -1567,7 +1579,9 @@ function Applications() {
         )
       );
       if (toLink.length > 0) {
-        const labels = toLink.map((l) => (l.role === "resume" ? "Resume" : "Cover Letter"));
+        const labels = toLink.map((l) =>
+          l.role === "resume" ? "Resume" : "Cover Letter"
+        );
         setAutoLinkMsg(`Linked your latest ${labels.join(" & ")} to this job.`);
         setTimeout(() => setAutoLinkMsg(""), 4000);
       }
@@ -1611,20 +1625,22 @@ function Applications() {
       )}
 
       {autoLinkMsg && (
-        <div style={{
-          position: "fixed",
-          bottom: "1.5rem",
-          right: "1.5rem",
-          background: "#22c55e",
-          color: "#fff",
-          padding: "0.75rem 1.25rem",
-          borderRadius: "8px",
-          fontWeight: 500,
-          fontSize: "0.9rem",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
-          zIndex: 9999,
-          animation: "fadeInUp 0.2s ease",
-        }}>
+        <div
+          style={{
+            position: "fixed",
+            bottom: "1.5rem",
+            right: "1.5rem",
+            background: "#22c55e",
+            color: "#fff",
+            padding: "0.75rem 1.25rem",
+            borderRadius: "8px",
+            fontWeight: 500,
+            fontSize: "0.9rem",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+            zIndex: 9999,
+            animation: "fadeInUp 0.2s ease",
+          }}
+        >
           ✓ {autoLinkMsg}
         </div>
       )}
@@ -1710,7 +1726,9 @@ function Applications() {
                     )
                   }
                   isHighlighted={job.job_id === highlightedId}
-                  cardRef={(el) => { cardRefs.current[job.job_id] = el; }}
+                  cardRef={(el) => {
+                    cardRefs.current[job.job_id] = el;
+                  }}
                 />
               ))}
             </div>

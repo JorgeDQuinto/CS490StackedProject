@@ -1289,120 +1289,129 @@ function DocumentLibrary() {
               {sortedDocuments.map((doc) => {
                 const linkedJobs = docJobMap[doc.document_id] || [];
                 return (
-                <tr
-                  key={doc.document_id}
-                  style={doc.is_deleted ? { opacity: 0.5 } : {}}
-                >
-                  <td>
-                    <div>{doc.title}</div>
-                    {linkedJobs.length > 0 && (
-                      <div style={{ marginTop: "4px", display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                        {linkedJobs.map((lj) => (
-                          <button
-                            key={lj.job_id}
-                            onClick={() =>
-                              navigate(`/applications?job=${lj.job_id}`)
-                            }
-                            title={`Go to ${lj.job_title} @ ${lj.company_name}`}
-                            style={{
-                              background: "none",
-                              border: "1px solid #4f8ef7",
-                              borderRadius: "4px",
-                              color: "#4f8ef7",
-                              cursor: "pointer",
-                              fontSize: "0.72rem",
-                              padding: "1px 6px",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            → {lj.job_title} @ {lj.company_name}
-                          </button>
+                  <tr
+                    key={doc.document_id}
+                    style={doc.is_deleted ? { opacity: 0.5 } : {}}
+                  >
+                    <td>
+                      <div>{doc.title}</div>
+                      {linkedJobs.length > 0 && (
+                        <div
+                          style={{
+                            marginTop: "4px",
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: "4px",
+                          }}
+                        >
+                          {linkedJobs.map((lj) => (
+                            <button
+                              key={lj.job_id}
+                              onClick={() =>
+                                navigate(`/applications?job=${lj.job_id}`)
+                              }
+                              title={`Go to ${lj.job_title} @ ${lj.company_name}`}
+                              style={{
+                                background: "none",
+                                border: "1px solid #4f8ef7",
+                                borderRadius: "4px",
+                                color: "#4f8ef7",
+                                cursor: "pointer",
+                                fontSize: "0.72rem",
+                                padding: "1px 6px",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              → {lj.job_title} @ {lj.company_name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                    <td>{doc.document_type}</td>
+                    <td>
+                      <select
+                        value={doc.status}
+                        onChange={(e) =>
+                          handleStatusChange(doc, e.target.value)
+                        }
+                        style={{ padding: "2px 4px" }}
+                      >
+                        {STATUS_OPTIONS.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
                         ))}
+                      </select>
+                    </td>
+                    <td>
+                      {doc.updated_at
+                        ? new Date(doc.updated_at).toLocaleDateString()
+                        : "—"}
+                    </td>
+                    <td>
+                      <div className="doclibrary-actions">
+                        <button
+                          className="doclibrary-action-btn doclibrary-view-btn"
+                          onClick={() => handleView(doc)}
+                          disabled={deletingId !== null}
+                          title="View Document"
+                        >
+                          View
+                        </button>
+                        <button
+                          className="doclibrary-action-btn doclibrary-edit-btn"
+                          onClick={() => handleEdit(doc)}
+                          disabled={deletingId !== null}
+                          title="Edit content (creates a new version)"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="doclibrary-action-btn"
+                          onClick={() => handleRenameClick(doc)}
+                          disabled={deletingId !== null}
+                          title="Rename"
+                        >
+                          Rename
+                        </button>
+                        <button
+                          className="doclibrary-action-btn"
+                          onClick={() => handleDuplicate(doc)}
+                          disabled={deletingId !== null}
+                          title="Duplicate"
+                        >
+                          Duplicate
+                        </button>
+                        <button
+                          className="doclibrary-action-btn"
+                          onClick={() => handleArchive(doc)}
+                          disabled={deletingId !== null}
+                          title={doc.is_deleted ? "Restore" : "Archive"}
+                        >
+                          {doc.is_deleted ? "Restore" : "Archive"}
+                        </button>
+                        <button
+                          className="doclibrary-action-btn"
+                          onClick={() => handleOpenHistory(doc)}
+                          disabled={deletingId !== null}
+                          title="View version history"
+                        >
+                          History
+                        </button>
+                        <button
+                          className="doclibrary-action-btn doclibrary-delete-btn"
+                          onClick={() => handleDeleteClick(doc)}
+                          disabled={deletingId === doc.document_id}
+                          title="Permanently delete"
+                        >
+                          {deletingId === doc.document_id
+                            ? "Deleting…"
+                            : "Delete"}
+                        </button>
                       </div>
-                    )}
-                  </td>
-                  <td>{doc.document_type}</td>
-                  <td>
-                    <select
-                      value={doc.status}
-                      onChange={(e) => handleStatusChange(doc, e.target.value)}
-                      style={{ padding: "2px 4px" }}
-                    >
-                      {STATUS_OPTIONS.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td>
-                    {doc.updated_at
-                      ? new Date(doc.updated_at).toLocaleDateString()
-                      : "—"}
-                  </td>
-                  <td>
-                    <div className="doclibrary-actions">
-                      <button
-                        className="doclibrary-action-btn doclibrary-view-btn"
-                        onClick={() => handleView(doc)}
-                        disabled={deletingId !== null}
-                        title="View Document"
-                      >
-                        View
-                      </button>
-                      <button
-                        className="doclibrary-action-btn doclibrary-edit-btn"
-                        onClick={() => handleEdit(doc)}
-                        disabled={deletingId !== null}
-                        title="Edit content (creates a new version)"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="doclibrary-action-btn"
-                        onClick={() => handleRenameClick(doc)}
-                        disabled={deletingId !== null}
-                        title="Rename"
-                      >
-                        Rename
-                      </button>
-                      <button
-                        className="doclibrary-action-btn"
-                        onClick={() => handleDuplicate(doc)}
-                        disabled={deletingId !== null}
-                        title="Duplicate"
-                      >
-                        Duplicate
-                      </button>
-                      <button
-                        className="doclibrary-action-btn"
-                        onClick={() => handleArchive(doc)}
-                        disabled={deletingId !== null}
-                        title={doc.is_deleted ? "Restore" : "Archive"}
-                      >
-                        {doc.is_deleted ? "Restore" : "Archive"}
-                      </button>
-                      <button
-                        className="doclibrary-action-btn"
-                        onClick={() => handleOpenHistory(doc)}
-                        disabled={deletingId !== null}
-                        title="View version history"
-                      >
-                        History
-                      </button>
-                      <button
-                        className="doclibrary-action-btn doclibrary-delete-btn"
-                        onClick={() => handleDeleteClick(doc)}
-                        disabled={deletingId === doc.document_id}
-                        title="Permanently delete"
-                      >
-                        {deletingId === doc.document_id
-                          ? "Deleting…"
-                          : "Delete"}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
                 );
               })}
             </tbody>
