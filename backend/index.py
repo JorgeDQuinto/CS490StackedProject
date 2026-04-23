@@ -22,6 +22,7 @@ from routers import (  # noqa: E402
     interviews,
     jobs,
     jobs_sorter,
+    library,
     profile,
     skills,
     users,
@@ -62,6 +63,7 @@ app.include_router(
     career_preferences.router, prefix="/career-preferences", tags=["Career Preferences"]
 )
 app.include_router(follow_ups.router, prefix="", tags=["Follow-Ups"])
+app.include_router(library.router, prefix="/library", tags=["Library"])
 app.include_router(frontend_logs.router, prefix="/logs", tags=["Logs"])
 
 
