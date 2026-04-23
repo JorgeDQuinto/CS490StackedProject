@@ -5,7 +5,6 @@ import { api } from "../lib/apiClient";
 import { logAction } from "../lib/actionLogger";
 import "./DocumentLibrary.css";
 
-// Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
   import.meta.url
@@ -19,33 +18,37 @@ const DOCUMENT_TYPES = [
   "Other",
 ];
 
+const STATUS_OPTIONS = ["Draft", "Final", "In Review", "Archived"];
+
 function DocumentLibrary() {
   const navigate = useNavigate();
   const [documents, setDocuments] = useState([]);
   const [loadError, setLoadError] = useState("");
   const [docType, setDocType] = useState(DOCUMENT_TYPES[0]);
+  const [docStatus, setDocStatus] = useState("Draft");
+  const [docTitle, setDocTitle] = useState("");
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState("");
+
+  // Filtering / sorting (S3-006)
+  const [filterType, setFilterType] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterIncludeArchived, setFilterIncludeArchived] = useState(false);
+  const [sortBy, setSortBy] = useState("updated_desc");
+
   const [viewingDoc, setViewingDoc] = useState(null);
   const [viewContent, setViewContent] = useState("");
   const [viewFormat, setViewFormat] = useState("");
   const [viewBinaryData, setViewBinaryData] = useState(null);
-  const [viewEditable, setViewEditable] = useState(false);
+  const [pdfNumPages, setPdfNumPages] = useState(0);
+
   const [editingDoc, setEditingDoc] = useState(null);
   const [editContent, setEditContent] = useState("");
-  const [editFormat, setEditFormat] = useState("");
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState("");
-  const [pdfNumPages, setPdfNumPages] = useState(0);
-  const [aiDoc, setAiDoc] = useState(null);
-  const [aiInstructions, setAiInstructions] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiOriginal, setAiOriginal] = useState("");
-  const [aiImproved, setAiImproved] = useState("");
-  const [aiError, setAiError] = useState("");
-  const [aiApplying, setAiApplying] = useState(false);
+
   const [genResumeOpen, setGenResumeOpen] = useState(false);
   const [genResumeJobId, setGenResumeJobId] = useState("");
   const [genResumeInstructions, setGenResumeInstructions] = useState("");
@@ -53,8 +56,7 @@ function DocumentLibrary() {
   const [genResumeContent, setGenResumeContent] = useState("");
   const [genResumeDocName, setGenResumeDocName] = useState("");
   const [genResumeError, setGenResumeError] = useState("");
-  const [appliedJobs, setAppliedJobs] = useState([]);
-  const [positions, setPositions] = useState([]);
+
   const [genCoverOpen, setGenCoverOpen] = useState(false);
   const [genCoverJobId, setGenCoverJobId] = useState("");
   const [genCoverInstructions, setGenCoverInstructions] = useState("");
@@ -62,11 +64,9 @@ function DocumentLibrary() {
   const [genCoverContent, setGenCoverContent] = useState("");
   const [genCoverDocName, setGenCoverDocName] = useState("");
   const [genCoverError, setGenCoverError] = useState("");
+
+  const [jobs, setJobs] = useState([]);
   const [deletingId, setDeletingId] = useState(null);
-  const [activeSection, setActiveSection] = useState("library");
-  const [archivedDocuments, setArchivedDocuments] = useState([]);
-  const [archivingId, setArchivingId] = useState(null);
-  const [restoringId, setRestoringId] = useState(null);
   const fileInputRef = useRef(null);
 
   const token = localStorage.getItem("token");
@@ -77,7 +77,13 @@ function DocumentLibrary() {
       return;
     }
     try {
-      const res = await api.get("/documents/me", {
+      const params = new URLSearchParams();
+      if (filterIncludeArchived) params.set("include_archived", "true");
+      if (filterType) params.set("document_type", filterType);
+      if (filterStatus) params.set("status_filter", filterStatus);
+      const url =
+        "/documents/me" + (params.toString() ? `?${params.toString()}` : "");
+      const res = await api.get(url, {
         caller: "DocumentLibrary.fetchDocuments",
         action: "load_documents",
       });
@@ -91,46 +97,37 @@ function DocumentLibrary() {
       });
       setDocuments(docs);
     } catch (err) {
-      logAction("DocumentLibrary.fetchDocuments", "load_documents_error", {
-        error: err.message,
-      });
       setLoadError("Failed to load documents.");
-    }
-  };
-
-  const fetchArchivedDocuments = async () => {
-    if (!token) return;
-    try {
-      const res = await api.get("/documents/archived", {
-        caller: "DocumentLibrary.fetchArchivedDocuments",
-        action: "load_archived_documents",
-      });
-      if (res.ok) setArchivedDocuments(await res.json());
-    } catch {
-      // non-fatal
     }
   };
 
   useEffect(() => {
     fetchDocuments();
-    fetchArchivedDocuments();
     if (token) {
-      Promise.all([
-        api.get("/jobs/dashboard", {
+      api
+        .get("/jobs/dashboard", {
           caller: "DocumentLibrary.useEffect",
-          action: "load_applied_jobs",
-        }),
-        api.get("/jobs/positions/?include_manual=true", {
-          caller: "DocumentLibrary.useEffect",
-          action: "load_positions",
-        }),
-      ]).then(([jobsRes, posRes]) => {
-        if (jobsRes.ok) jobsRes.json().then(setAppliedJobs);
-        if (posRes.ok) posRes.json().then(setPositions);
-      });
+          action: "load_jobs",
+        })
+        .then((r) => (r.ok ? r.json() : []))
+        .then(setJobs)
+        .catch(() => setJobs([]));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, filterType, filterStatus, filterIncludeArchived]);
+
+  // Sorting in JS — backend returns updated_at desc by default
+  const sortedDocuments = [...documents].sort((a, b) => {
+    if (sortBy === "updated_desc")
+      return new Date(b.updated_at) - new Date(a.updated_at);
+    if (sortBy === "updated_asc")
+      return new Date(a.updated_at) - new Date(b.updated_at);
+    if (sortBy === "title_asc")
+      return (a.title || "").localeCompare(b.title || "");
+    if (sortBy === "title_desc")
+      return (b.title || "").localeCompare(a.title || "");
+    return 0;
+  });
 
   const handleUpload = async (e) => {
     e.preventDefault();
@@ -149,9 +146,11 @@ function DocumentLibrary() {
     const form = new FormData();
     form.append("file", file);
     form.append("document_type", docType);
+    if (docTitle.trim()) form.append("title", docTitle.trim());
+    form.append("status_value", docStatus);
 
     setUploading(true);
-    const res = await api.post("/library/upload", form, {
+    const res = await api.post("/documents/upload", form, {
       caller: "DocumentLibrary.handleUpload",
       action: "upload_document",
     });
@@ -165,6 +164,7 @@ function DocumentLibrary() {
 
     setUploadSuccess("File uploaded successfully.");
     setFile(null);
+    setDocTitle("");
     if (fileInputRef.current) fileInputRef.current.value = "";
     fetchDocuments();
   };
@@ -175,30 +175,23 @@ function DocumentLibrary() {
       setEditError("You must be signed in to view documents.");
       return;
     }
-
     try {
-      const res = await api.get(`/documents/${doc.doc_id}/content`, {
+      const res = await api.get(`/documents/${doc.document_id}/content`, {
         caller: "DocumentLibrary.handleView",
         action: "view_document",
       });
-
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         setEditError(err.detail || "Failed to load document content.");
         return;
       }
-
       const data = await res.json();
       setViewingDoc(doc);
       setViewContent(data.content || "");
       setViewFormat(data.format || "text");
       setViewBinaryData(data.binary_data || null);
-      setViewEditable(data.editable || false);
       setPdfNumPages(0);
     } catch (err) {
-      logAction("DocumentLibrary.handleView", "view_document_error", {
-        error: err.message,
-      });
       setEditError("Failed to load document.");
     }
   };
@@ -209,19 +202,16 @@ function DocumentLibrary() {
       setEditError("You must be signed in to edit documents.");
       return;
     }
-
     try {
-      const res = await api.get(`/documents/${doc.doc_id}/content`, {
+      const res = await api.get(`/documents/${doc.document_id}/content`, {
         caller: "DocumentLibrary.handleEdit",
         action: "load_document_for_edit",
       });
-
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         setEditError(err.detail || "Failed to load document content.");
         return;
       }
-
       const data = await res.json();
       if (!data.editable) {
         setEditError(
@@ -229,14 +219,9 @@ function DocumentLibrary() {
         );
         return;
       }
-
       setEditingDoc(doc);
       setEditContent(data.content || "");
-      setEditFormat(data.format || "text");
     } catch (err) {
-      logAction("DocumentLibrary.handleEdit", "edit_document_error", {
-        error: err.message,
-      });
       setEditError("Failed to load document.");
     }
   };
@@ -246,13 +231,13 @@ function DocumentLibrary() {
       setEditError("You must be signed in to save.");
       return;
     }
-
     setSaving(true);
     setEditError("");
+    // v2: edit content via dedicated /content PUT (creates a new version row)
     const res = await api.put(
-      `/documents/${editingDoc.doc_id}`,
+      `/documents/${editingDoc.document_id}/content`,
       { content: editContent },
-      { caller: "DocumentLibrary.handleSave", action: "save_document" }
+      { caller: "DocumentLibrary.handleSave", action: "save_document_version" }
     );
     setSaving(false);
 
@@ -261,7 +246,6 @@ function DocumentLibrary() {
       setEditError(err.detail || "Failed to save document.");
       return;
     }
-
     setEditingDoc(null);
     setEditContent("");
     setUploadSuccess("Document saved successfully!");
@@ -270,121 +254,95 @@ function DocumentLibrary() {
   };
 
   const handleArchive = async (doc) => {
-    if (!token) return;
-    setArchivingId(doc.doc_id);
-    try {
-      const res = await api.post(
-        `/documents/${doc.doc_id}/archive`,
-        {},
-        { caller: "DocumentLibrary.handleArchive", action: "archive_document" }
+    const newDeleted = !doc.is_deleted;
+    const res = await api.put(
+      `/documents/${doc.document_id}`,
+      { is_deleted: newDeleted },
+      { caller: "DocumentLibrary.handleArchive", action: "archive_document" }
+    );
+    if (res.ok) {
+      setUploadSuccess(
+        newDeleted ? "Document archived." : "Document restored."
       );
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        setUploadError(err.detail || "Failed to archive document.");
-        setTimeout(() => setUploadError(""), 4000);
-      } else {
-        setUploadSuccess("Document archived.");
-        setTimeout(() => setUploadSuccess(""), 3000);
-        fetchDocuments();
-        fetchArchivedDocuments();
-      }
-    } catch {
-      setUploadError("Network error. Please try again.");
-      setTimeout(() => setUploadError(""), 4000);
-    } finally {
-      setArchivingId(null);
+      setTimeout(() => setUploadSuccess(""), 3000);
+      fetchDocuments();
     }
   };
 
-  const handleRestore = async (doc) => {
-    if (!token) return;
-    setRestoringId(doc.doc_id);
-    try {
-      const res = await api.post(
-        `/documents/${doc.doc_id}/restore`,
-        {},
-        { caller: "DocumentLibrary.handleRestore", action: "restore_document" }
-      );
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        setUploadError(err.detail || "Failed to restore document.");
-        setTimeout(() => setUploadError(""), 4000);
-      } else {
-        setUploadSuccess("Document restored to library.");
-        setTimeout(() => setUploadSuccess(""), 3000);
-        fetchDocuments();
-        fetchArchivedDocuments();
+  const handleDuplicate = async (doc) => {
+    const res = await api.post(
+      `/documents/${doc.document_id}/duplicate`,
+      {},
+      {
+        caller: "DocumentLibrary.handleDuplicate",
+        action: "duplicate_document",
       }
-    } catch {
-      setUploadError("Network error. Please try again.");
-      setTimeout(() => setUploadError(""), 4000);
-    } finally {
-      setRestoringId(null);
+    );
+    if (res.ok) {
+      setUploadSuccess("Document duplicated.");
+      setTimeout(() => setUploadSuccess(""), 3000);
+      fetchDocuments();
     }
+  };
+
+  const handleRename = async (doc) => {
+    const newTitle = window.prompt("New title:", doc.title);
+    if (!newTitle || newTitle === doc.title) return;
+    const res = await api.put(
+      `/documents/${doc.document_id}`,
+      { title: newTitle },
+      { caller: "DocumentLibrary.handleRename", action: "rename_document" }
+    );
+    if (res.ok) {
+      setUploadSuccess("Renamed.");
+      setTimeout(() => setUploadSuccess(""), 3000);
+      fetchDocuments();
+    }
+  };
+
+  const handleStatusChange = async (doc, newStatus) => {
+    const res = await api.put(
+      `/documents/${doc.document_id}`,
+      { status: newStatus },
+      { caller: "DocumentLibrary.handleStatusChange", action: "set_status" }
+    );
+    if (res.ok) fetchDocuments();
   };
 
   const handleDelete = async (doc) => {
-    if (!window.confirm(`Delete ${doc.document_name}?`)) {
+    if (
+      !window.confirm(
+        `Permanently delete "${doc.title}"? This cannot be undone. Use Archive to soft-delete instead.`
+      )
+    )
       return;
-    }
-
-    if (!token) {
-      setUploadError("You must be signed in to delete.");
-      setTimeout(() => setUploadError(""), 3000);
-      return;
-    }
-
-    logAction("DocumentLibrary.handleDelete", "delete_document_attempt", {
-      doc_id: doc.doc_id,
-      name: doc.document_name,
-    });
-    setDeletingId(doc.doc_id);
+    if (!token) return;
+    setDeletingId(doc.document_id);
     try {
-      const res = await api.delete(`/documents/${doc.doc_id}`, {
+      const res = await api.delete(`/documents/${doc.document_id}`, {
         caller: "DocumentLibrary.handleDelete",
         action: "delete_document",
       });
-
       if (!res.ok) {
         let errorMsg = "Failed to delete document.";
-        let responseBody = "";
         try {
-          responseBody = await res.text();
-          const err = JSON.parse(responseBody);
+          const err = await res.json();
           errorMsg = err.detail || errorMsg;
-          logAction("DocumentLibrary.handleDelete", "delete_error", {
-            doc_id: doc.doc_id,
-            detail: err.detail,
-          });
-        } catch (e) {
-          if (res.status === 404) {
-            errorMsg = "Document not found. It may have already been deleted.";
-          } else if (res.status === 403) {
+        } catch {
+          if (res.status === 404)
+            errorMsg = "Document not found. It may already be deleted.";
+          else if (res.status === 403)
             errorMsg = "You don't have permission to delete this document.";
-          }
-          logAction("DocumentLibrary.handleDelete", "delete_error_unparsed", {
-            status: res.status,
-          });
         }
         setUploadError(errorMsg);
         setTimeout(() => setUploadError(""), 4000);
         setDeletingId(null);
         return;
       }
-
-      logAction("DocumentLibrary.handleDelete", "delete_success", {
-        doc_id: doc.doc_id,
-      });
       setUploadSuccess("Document deleted successfully!");
       setTimeout(() => setUploadSuccess(""), 3000);
-      setTimeout(() => {
-        fetchDocuments();
-        fetchArchivedDocuments();
-      }, 500);
-    } catch (err) {
-      logAction("DocumentLibrary.handleDelete", "delete_network_error", {
-        error: err.message,
-      });
+      setTimeout(fetchDocuments, 500);
+    } catch {
       setUploadError(
         "Network error deleting document. Please check your connection."
       );
@@ -395,113 +353,15 @@ function DocumentLibrary() {
     }
   };
 
-  const onPdfLoadSuccess = ({ numPages }) => {
-    setPdfNumPages(numPages);
-  };
+  const onPdfLoadSuccess = ({ numPages }) => setPdfNumPages(numPages);
 
-  const handleAiImprove = (doc) => {
-    setAiDoc(doc);
-    setAiInstructions("");
-    setAiOriginal("");
-    setAiImproved("");
-    setAiError("");
-  };
-
-  const handleAiGenerate = async () => {
-    if (!token) {
-      setAiError("You must be signed in.");
-      return;
-    }
-    setAiLoading(true);
-    setAiError("");
-    setAiOriginal("");
-    setAiImproved("");
-
-    try {
-      const res = await api.post(
-        `/documents/${aiDoc.doc_id}/ai-rewrite`,
-        { instructions: aiInstructions },
-        { caller: "DocumentLibrary.handleAiGenerate", action: "ai_rewrite" }
-      );
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        setAiError(err.detail || "AI rewrite failed. Please try again.");
-        return;
-      }
-
-      const data = await res.json();
-      setAiOriginal(data.original);
-      setAiImproved(data.improved);
-    } catch (err) {
-      logAction("DocumentLibrary.handleAiGenerate", "ai_rewrite_error", {
-        error: err.message,
-      });
-      setAiError("Request failed.");
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  const handleAiApply = async () => {
-    if (!token || !aiDoc) return;
-    setAiApplying(true);
-    setAiError("");
-
-    const res = await api.put(
-      `/documents/${aiDoc.doc_id}`,
-      { content: aiImproved },
-      {
-        caller: "DocumentLibrary.handleAiApply",
-        action: "apply_ai_improvements",
-      }
-    );
-    setAiApplying(false);
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      setAiError(err.detail || "Failed to apply changes.");
-      return;
-    }
-
-    setAiDoc(null);
-    setUploadSuccess("AI improvements applied successfully!");
-    setTimeout(() => setUploadSuccess(""), 3000);
-    fetchDocuments();
-  };
-
-  const handleAiClose = () => {
-    setAiDoc(null);
-    setAiInstructions("");
-    setAiOriginal("");
-    setAiImproved("");
-    setAiError("");
-  };
-
-  const handleOpenGenResume = async () => {
+  const handleOpenGenResume = () => {
     setGenResumeOpen(true);
     setGenResumeJobId("");
     setGenResumeInstructions("");
     setGenResumeContent("");
     setGenResumeDocName("");
     setGenResumeError("");
-
-    try {
-      const [jobsRes, posRes] = await Promise.all([
-        api.get("/jobs/dashboard", {
-          caller: "DocumentLibrary.handleOpenGenResume",
-          action: "load_applied_jobs",
-        }),
-        api.get("/jobs/positions/", {
-          caller: "DocumentLibrary.handleOpenGenResume",
-          action: "load_positions",
-        }),
-      ]);
-      if (jobsRes.ok) setAppliedJobs(await jobsRes.json());
-      if (posRes.ok) setPositions(await posRes.json());
-    } catch {
-      // dropdown will just be empty; not fatal
-    }
   };
 
   const handleGenResumeGenerate = async () => {
@@ -511,7 +371,6 @@ function DocumentLibrary() {
     }
     setGenResumeLoading(true);
     setGenResumeError("");
-
     try {
       const res = await api.post(
         "/documents/generate-resume",
@@ -524,7 +383,6 @@ function DocumentLibrary() {
           action: "generate_resume",
         }
       );
-
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         setGenResumeError(
@@ -532,10 +390,9 @@ function DocumentLibrary() {
         );
         return;
       }
-
       const data = await res.json();
       setGenResumeContent(data.content);
-      setGenResumeDocName(data.document_name);
+      setGenResumeDocName(data.title || data.document_name || "");
       fetchDocuments();
     } catch {
       setGenResumeError("Request failed. Check console for details.");
@@ -553,30 +410,13 @@ function DocumentLibrary() {
     setGenResumeError("");
   };
 
-  const handleOpenGenCover = async () => {
+  const handleOpenGenCover = () => {
     setGenCoverOpen(true);
     setGenCoverJobId("");
     setGenCoverInstructions("");
     setGenCoverContent("");
     setGenCoverDocName("");
     setGenCoverError("");
-
-    try {
-      const [jobsRes, posRes] = await Promise.all([
-        api.get("/jobs/dashboard", {
-          caller: "DocumentLibrary.handleOpenGenCover",
-          action: "load_applied_jobs",
-        }),
-        api.get("/jobs/positions/", {
-          caller: "DocumentLibrary.handleOpenGenCover",
-          action: "load_positions",
-        }),
-      ]);
-      if (jobsRes.ok) setAppliedJobs(await jobsRes.json());
-      if (posRes.ok) setPositions(await posRes.json());
-    } catch {
-      // dropdown will just be empty; not fatal
-    }
   };
 
   const handleGenCoverGenerate = async () => {
@@ -586,7 +426,6 @@ function DocumentLibrary() {
     }
     setGenCoverLoading(true);
     setGenCoverError("");
-
     try {
       const res = await api.post(
         "/documents/generate-cover-letter",
@@ -599,7 +438,6 @@ function DocumentLibrary() {
           action: "generate_cover_letter",
         }
       );
-
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         setGenCoverError(
@@ -607,10 +445,9 @@ function DocumentLibrary() {
         );
         return;
       }
-
       const data = await res.json();
       setGenCoverContent(data.content);
-      setGenCoverDocName(data.document_name);
+      setGenCoverDocName(data.title || data.document_name || "");
       fetchDocuments();
     } catch {
       setGenCoverError("Request failed. Check console for details.");
@@ -627,11 +464,6 @@ function DocumentLibrary() {
     setGenCoverDocName("");
     setGenCoverError("");
   };
-
-  // Build a position lookup map for the job dropdown
-  const positionMap = Object.fromEntries(
-    positions.map((p) => [p.position_id, p])
-  );
 
   return (
     <div className="doclibrary">
@@ -658,7 +490,7 @@ function DocumentLibrary() {
         <div className="doclibrary-modal-overlay">
           <div className="doclibrary-modal">
             <div className="doclibrary-modal-header">
-              <h2>View {viewingDoc.document_name}</h2>
+              <h2>View {viewingDoc.title}</h2>
               <button
                 className="doclibrary-modal-close"
                 onClick={() => {
@@ -671,7 +503,6 @@ function DocumentLibrary() {
                 ✕
               </button>
             </div>
-
             <div className="doclibrary-viewer">
               {viewFormat === "pdf" && viewBinaryData ? (
                 <Document
@@ -691,7 +522,6 @@ function DocumentLibrary() {
                 <pre>{viewContent}</pre>
               )}
             </div>
-
             <div className="doclibrary-modal-actions">
               <button
                 className="doclibrary-close-btn"
@@ -713,37 +543,31 @@ function DocumentLibrary() {
         <div className="doclibrary-modal-overlay">
           <div className="doclibrary-modal">
             <div className="doclibrary-modal-header">
-              <h2>Edit {editingDoc.document_name}</h2>
+              <h2>Edit {editingDoc.title}</h2>
               <button
                 className="doclibrary-modal-close"
                 onClick={() => {
                   setEditingDoc(null);
                   setEditContent("");
-                  setEditFormat("");
                   setEditError("");
                 }}
               >
                 ✕
               </button>
             </div>
-
             {editError && <p className="doclibrary-error">{editError}</p>}
-
             <textarea
               className="doclibrary-editor"
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
               placeholder="Edit your document content here..."
-              disabled={!viewEditable}
             />
-
             <div className="doclibrary-modal-actions">
               <button
                 className="doclibrary-cancel-btn"
                 onClick={() => {
                   setEditingDoc(null);
                   setEditContent("");
-                  setEditFormat("");
                   setEditError("");
                 }}
               >
@@ -754,110 +578,8 @@ function DocumentLibrary() {
                 onClick={handleSave}
                 disabled={saving}
               >
-                {saving ? "Saving..." : "Save"}
+                {saving ? "Saving..." : "Save as new version"}
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {aiDoc && (
-        <div className="doclibrary-modal-overlay">
-          <div className="doclibrary-modal doclibrary-ai-modal">
-            <div className="doclibrary-modal-header">
-              <h2>AI Improve — {aiDoc.document_name}</h2>
-              <button
-                className="doclibrary-modal-close"
-                onClick={handleAiClose}
-              >
-                ✕
-              </button>
-            </div>
-
-            {!aiOriginal && (
-              <div className="doclibrary-ai-prompt">
-                <label className="doclibrary-ai-label">
-                  Instructions{" "}
-                  <span className="doclibrary-ai-optional">(optional)</span>
-                </label>
-                <textarea
-                  className="doclibrary-ai-instructions"
-                  value={aiInstructions}
-                  onChange={(e) => setAiInstructions(e.target.value)}
-                  placeholder="e.g. Make it more ATS-friendly, strengthen action verbs, tailor for a software engineering role…"
-                  rows={3}
-                  disabled={aiLoading}
-                />
-                {aiError && <p className="doclibrary-error">{aiError}</p>}
-              </div>
-            )}
-
-            {aiLoading && (
-              <div className="doclibrary-ai-loading">
-                <div className="doclibrary-ai-spinner" />
-                <p>Generating improvements…</p>
-              </div>
-            )}
-
-            {aiOriginal && !aiLoading && (
-              <div className="doclibrary-ai-compare">
-                <div className="doclibrary-ai-col">
-                  <div className="doclibrary-ai-col-header">Original</div>
-                  <pre className="doclibrary-ai-text">{aiOriginal}</pre>
-                </div>
-                <div className="doclibrary-ai-col">
-                  <div className="doclibrary-ai-col-header doclibrary-ai-col-header--improved">
-                    AI Suggestion
-                  </div>
-                  <textarea
-                    className="doclibrary-ai-text doclibrary-ai-text--editable"
-                    value={aiImproved}
-                    onChange={(e) => setAiImproved(e.target.value)}
-                  />
-                </div>
-              </div>
-            )}
-
-            {aiError && aiOriginal && (
-              <p className="doclibrary-error doclibrary-ai-error-inline">
-                {aiError}
-              </p>
-            )}
-
-            <div className="doclibrary-modal-actions">
-              <button className="doclibrary-cancel-btn" onClick={handleAiClose}>
-                Cancel
-              </button>
-              {!aiOriginal && (
-                <button
-                  className="doclibrary-ai-generate-btn"
-                  onClick={handleAiGenerate}
-                  disabled={aiLoading}
-                >
-                  {aiLoading ? "Generating…" : "Generate Improvements"}
-                </button>
-              )}
-              {aiOriginal && (
-                <>
-                  <button
-                    className="doclibrary-cancel-btn"
-                    onClick={() => {
-                      setAiOriginal("");
-                      setAiImproved("");
-                      setAiError("");
-                    }}
-                  >
-                    Try Again
-                  </button>
-                  <button
-                    className="doclibrary-save-btn"
-                    onClick={handleAiApply}
-                    disabled={aiApplying}
-                  >
-                    {aiApplying ? "Applying…" : "Apply Changes"}
-                  </button>
-                </>
-              )}
             </div>
           </div>
         </div>
@@ -875,7 +597,6 @@ function DocumentLibrary() {
                 ✕
               </button>
             </div>
-
             {!genResumeContent && (
               <div className="doclibrary-ai-prompt">
                 <label className="doclibrary-ai-label">
@@ -889,17 +610,11 @@ function DocumentLibrary() {
                   disabled={genResumeLoading}
                 >
                   <option value="">— General resume (no specific job) —</option>
-                  {appliedJobs.map((job) => {
-                    const pos = positionMap[job.position_id];
-                    const label = pos
-                      ? `${pos.title} at ${pos.company_name} (${job.application_status})`
-                      : `Application #${job.job_id} (${job.application_status})`;
-                    return (
-                      <option key={job.job_id} value={job.job_id}>
-                        {label}
-                      </option>
-                    );
-                  })}
+                  {jobs.map((job) => (
+                    <option key={job.job_id} value={job.job_id}>
+                      {job.title} @ {job.company_name} ({job.stage})
+                    </option>
+                  ))}
                 </select>
 
                 <label
@@ -913,7 +628,7 @@ function DocumentLibrary() {
                   className="doclibrary-ai-instructions"
                   value={genResumeInstructions}
                   onChange={(e) => setGenResumeInstructions(e.target.value)}
-                  placeholder="e.g. Emphasize backend experience, target a senior-level role, keep to one page…"
+                  placeholder="e.g. Emphasize backend experience, target a senior-level role…"
                   rows={3}
                   disabled={genResumeLoading}
                 />
@@ -922,14 +637,12 @@ function DocumentLibrary() {
                 )}
               </div>
             )}
-
             {genResumeLoading && (
               <div className="doclibrary-ai-loading">
                 <div className="doclibrary-ai-spinner" />
                 <p>Generating your resume…</p>
               </div>
             )}
-
             {genResumeContent && !genResumeLoading && (
               <div className="doclibrary-gen-result">
                 <div className="doclibrary-gen-result-header">
@@ -944,7 +657,6 @@ function DocumentLibrary() {
                 />
               </div>
             )}
-
             <div className="doclibrary-modal-actions">
               <button
                 className="doclibrary-cancel-btn"
@@ -978,7 +690,6 @@ function DocumentLibrary() {
                 ✕
               </button>
             </div>
-
             {!genCoverContent && (
               <div className="doclibrary-ai-prompt">
                 <label className="doclibrary-ai-label">
@@ -994,17 +705,11 @@ function DocumentLibrary() {
                   <option value="">
                     — General cover letter (no specific job) —
                   </option>
-                  {appliedJobs.map((job) => {
-                    const pos = positionMap[job.position_id];
-                    const label = pos
-                      ? `${pos.title} at ${pos.company_name} (${job.application_status})`
-                      : `Application #${job.job_id} (${job.application_status})`;
-                    return (
-                      <option key={job.job_id} value={job.job_id}>
-                        {label}
-                      </option>
-                    );
-                  })}
+                  {jobs.map((job) => (
+                    <option key={job.job_id} value={job.job_id}>
+                      {job.title} @ {job.company_name} ({job.stage})
+                    </option>
+                  ))}
                 </select>
 
                 <label
@@ -1018,7 +723,7 @@ function DocumentLibrary() {
                   className="doclibrary-ai-instructions"
                   value={genCoverInstructions}
                   onChange={(e) => setGenCoverInstructions(e.target.value)}
-                  placeholder="e.g. Emphasize leadership experience, keep it under one page, formal tone…"
+                  placeholder="e.g. Emphasize leadership experience, formal tone…"
                   rows={3}
                   disabled={genCoverLoading}
                 />
@@ -1027,14 +732,12 @@ function DocumentLibrary() {
                 )}
               </div>
             )}
-
             {genCoverLoading && (
               <div className="doclibrary-ai-loading">
                 <div className="doclibrary-ai-spinner" />
                 <p>Generating your cover letter…</p>
               </div>
             )}
-
             {genCoverContent && !genCoverLoading && (
               <div className="doclibrary-gen-result">
                 <div className="doclibrary-gen-result-header">
@@ -1049,7 +752,6 @@ function DocumentLibrary() {
                 />
               </div>
             )}
-
             <div className="doclibrary-modal-actions">
               <button
                 className="doclibrary-cancel-btn"
@@ -1083,6 +785,26 @@ function DocumentLibrary() {
             ))}
           </select>
 
+          <label>Title (optional)</label>
+          <input
+            type="text"
+            value={docTitle}
+            onChange={(e) => setDocTitle(e.target.value)}
+            placeholder="Defaults to filename"
+          />
+
+          <label>Status</label>
+          <select
+            value={docStatus}
+            onChange={(e) => setDocStatus(e.target.value)}
+          >
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+
           <label>File</label>
           <input
             ref={fileInputRef}
@@ -1107,202 +829,162 @@ function DocumentLibrary() {
       </section>
 
       <section className="doclibrary-list">
-        <div className="doclibrary-tabs">
-          <button
-            className={`doclibrary-tab${activeSection === "library" ? " doclibrary-tab--active" : ""}`}
-            onClick={() => setActiveSection("library")}
-          >
-            My Documents
-            {documents.length > 0 && (
-              <span className="doclibrary-tab-count">{documents.length}</span>
-            )}
-          </button>
-          <button
-            className={`doclibrary-tab${activeSection === "archive" ? " doclibrary-tab--active" : ""}`}
-            onClick={() => setActiveSection("archive")}
-          >
-            Archive
-            {archivedDocuments.length > 0 && (
-              <span className="doclibrary-tab-count doclibrary-tab-count--archive">
-                {archivedDocuments.length}
-              </span>
-            )}
-          </button>
+        <div
+          style={{
+            display: "flex",
+            gap: "12px",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+          }}
+        >
+          <h2>Your Documents</h2>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              title="Filter by type"
+            >
+              <option value="">All types</option>
+              {DOCUMENT_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              title="Filter by status"
+            >
+              <option value="">All statuses</option>
+              {STATUS_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              title="Sort"
+            >
+              <option value="updated_desc">Newest first</option>
+              <option value="updated_asc">Oldest first</option>
+              <option value="title_asc">Title A→Z</option>
+              <option value="title_desc">Title Z→A</option>
+            </select>
+            <label
+              style={{ display: "flex", alignItems: "center", gap: "4px" }}
+            >
+              <input
+                type="checkbox"
+                checked={filterIncludeArchived}
+                onChange={(e) => setFilterIncludeArchived(e.target.checked)}
+              />
+              Show archived
+            </label>
+          </div>
         </div>
-
-        {activeSection === "library" && (
-          <>
-            {loadError && <p className="doclibrary-error">{loadError}</p>}
-            {!loadError && documents.length === 0 && (
-              <p className="doclibrary-empty">No documents uploaded yet.</p>
-            )}
-            {documents.length > 0 && (
-              <table className="doclibrary-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th>Linked Job</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {documents.map((doc) => {
-                    const linkedJob = doc.job_id
-                      ? appliedJobs.find((j) => j.job_id === doc.job_id)
-                      : null;
-                    const linkedPos = linkedJob
-                      ? positionMap[linkedJob.position_id]
-                      : null;
-                    const jobLabel = linkedPos
-                      ? `${linkedPos.title} @ ${linkedPos.company_name}`
-                      : null;
-                    return (
-                      <tr key={doc.doc_id}>
-                        <td>
-                          {doc.document_name || `Document #${doc.doc_id}`}
-                        </td>
-                        <td>{doc.document_type}</td>
-                        <td>
-                          {jobLabel && linkedPos ? (
-                            <button
-                              className="doclibrary-linked-job doclibrary-linked-job-btn"
-                              onClick={() =>
-                                navigate(`/?job=${linkedPos.position_id}`)
-                              }
-                              title="Open job card in Dashboard"
-                            >
-                              {jobLabel}
-                            </button>
-                          ) : (
-                            <span className="doclibrary-unlinked">—</span>
-                          )}
-                        </td>
-                        <td>
-                          <div className="doclibrary-actions">
-                            <button
-                              className="doclibrary-action-btn doclibrary-view-btn"
-                              onClick={() => handleView(doc)}
-                              disabled={archivingId !== null}
-                              title="View Document"
-                            >
-                              View
-                            </button>
-                            <button
-                              className="doclibrary-action-btn doclibrary-edit-btn"
-                              onClick={() => handleEdit(doc)}
-                              disabled={archivingId !== null}
-                              title="Edit Document"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="doclibrary-action-btn doclibrary-ai-btn"
-                              onClick={() => handleAiImprove(doc)}
-                              disabled={archivingId !== null}
-                              title="AI Improve"
-                            >
-                              AI Improve
-                            </button>
-                            <button
-                              className="doclibrary-action-btn doclibrary-archive-btn"
-                              onClick={() => handleArchive(doc)}
-                              disabled={archivingId === doc.doc_id}
-                              title="Archive Document"
-                            >
-                              {archivingId === doc.doc_id
-                                ? "Archiving…"
-                                : "Archive"}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </>
+        {loadError && <p className="doclibrary-error">{loadError}</p>}
+        {!loadError && sortedDocuments.length === 0 && (
+          <p className="doclibrary-empty">No documents.</p>
         )}
-
-        {activeSection === "archive" && (
-          <>
-            {archivedDocuments.length === 0 && (
-              <p className="doclibrary-empty">No archived documents.</p>
-            )}
-            {archivedDocuments.length > 0 && (
-              <table className="doclibrary-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th>Linked Job</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {archivedDocuments.map((doc) => {
-                    const linkedJob = doc.job_id
-                      ? appliedJobs.find((j) => j.job_id === doc.job_id)
-                      : null;
-                    const linkedPos = linkedJob
-                      ? positionMap[linkedJob.position_id]
-                      : null;
-                    const jobLabel = linkedPos
-                      ? `${linkedPos.title} @ ${linkedPos.company_name}`
-                      : null;
-                    return (
-                      <tr key={doc.doc_id} className="doclibrary-archived-row">
-                        <td>
-                          {doc.document_name || `Document #${doc.doc_id}`}
-                        </td>
-                        <td>{doc.document_type}</td>
-                        <td>
-                          {jobLabel && linkedPos ? (
-                            <span className="doclibrary-unlinked">
-                              {jobLabel}
-                            </span>
-                          ) : (
-                            <span className="doclibrary-unlinked">—</span>
-                          )}
-                        </td>
-                        <td>
-                          <div className="doclibrary-actions">
-                            <button
-                              className="doclibrary-action-btn doclibrary-restore-btn"
-                              onClick={() => handleRestore(doc)}
-                              disabled={
-                                restoringId === doc.doc_id ||
-                                deletingId === doc.doc_id
-                              }
-                              title="Restore to Library"
-                            >
-                              {restoringId === doc.doc_id
-                                ? "Restoring…"
-                                : "Restore"}
-                            </button>
-                            <button
-                              className="doclibrary-action-btn doclibrary-delete-btn"
-                              onClick={() => handleDelete(doc)}
-                              disabled={
-                                deletingId === doc.doc_id ||
-                                restoringId === doc.doc_id
-                              }
-                              title="Permanently Delete"
-                            >
-                              {deletingId === doc.doc_id
-                                ? "Deleting…"
-                                : "Delete"}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </>
+        {sortedDocuments.length > 0 && (
+          <table className="doclibrary-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Updated</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedDocuments.map((doc) => (
+                <tr
+                  key={doc.document_id}
+                  style={doc.is_deleted ? { opacity: 0.5 } : {}}
+                >
+                  <td>{doc.title}</td>
+                  <td>{doc.document_type}</td>
+                  <td>
+                    <select
+                      value={doc.status}
+                      onChange={(e) => handleStatusChange(doc, e.target.value)}
+                      style={{ padding: "2px 4px" }}
+                    >
+                      {STATUS_OPTIONS.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>
+                    {doc.updated_at
+                      ? new Date(doc.updated_at).toLocaleDateString()
+                      : "—"}
+                  </td>
+                  <td>
+                    <div className="doclibrary-actions">
+                      <button
+                        className="doclibrary-action-btn doclibrary-view-btn"
+                        onClick={() => handleView(doc)}
+                        disabled={deletingId !== null}
+                        title="View Document"
+                      >
+                        View
+                      </button>
+                      <button
+                        className="doclibrary-action-btn doclibrary-edit-btn"
+                        onClick={() => handleEdit(doc)}
+                        disabled={deletingId !== null}
+                        title="Edit content (creates a new version)"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="doclibrary-action-btn"
+                        onClick={() => handleRename(doc)}
+                        disabled={deletingId !== null}
+                        title="Rename"
+                      >
+                        Rename
+                      </button>
+                      <button
+                        className="doclibrary-action-btn"
+                        onClick={() => handleDuplicate(doc)}
+                        disabled={deletingId !== null}
+                        title="Duplicate"
+                      >
+                        Duplicate
+                      </button>
+                      <button
+                        className="doclibrary-action-btn"
+                        onClick={() => handleArchive(doc)}
+                        disabled={deletingId !== null}
+                        title={doc.is_deleted ? "Restore" : "Archive"}
+                      >
+                        {doc.is_deleted ? "Restore" : "Archive"}
+                      </button>
+                      <button
+                        className="doclibrary-action-btn doclibrary-delete-btn"
+                        onClick={() => handleDelete(doc)}
+                        disabled={deletingId === doc.document_id}
+                        title="Permanently delete"
+                      >
+                        {deletingId === doc.document_id
+                          ? "Deleting…"
+                          : "Delete"}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </section>
     </div>

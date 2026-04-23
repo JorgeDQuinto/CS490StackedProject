@@ -76,8 +76,13 @@ def engine():
 
 @pytest.fixture(scope="function")
 def session(engine):
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
+    # Disable FK enforcement during the wipe so the document <-> document_version
+    # circular FK (use_alter=True) doesn't block drop_all.
+    with engine.begin() as conn:
+        conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
+        Base.metadata.drop_all(conn)
+        Base.metadata.create_all(conn)
+        conn.exec_driver_sql("PRAGMA foreign_keys=ON")
     db = Session(engine)
     try:
         yield db
