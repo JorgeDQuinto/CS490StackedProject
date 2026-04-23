@@ -32,12 +32,6 @@ function DocumentLibrary() {
   const [uploadError, setUploadError] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState("");
 
-  // Filtering / sorting (S3-006)
-  const [filterType, setFilterType] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
-  const [filterIncludeArchived, setFilterIncludeArchived] = useState(false);
-  const [sortBy, setSortBy] = useState("updated_desc");
-
   const [viewingDoc, setViewingDoc] = useState(null);
   const [viewContent, setViewContent] = useState("");
   const [viewFormat, setViewFormat] = useState("");
@@ -65,8 +59,18 @@ function DocumentLibrary() {
   const [genCoverDocName, setGenCoverDocName] = useState("");
   const [genCoverError, setGenCoverError] = useState("");
 
+  // Filtering / sorting (S3-006)
+  const [filterType, setFilterType] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterIncludeArchived, setFilterIncludeArchived] = useState(false);
+  const [sortBy, setSortBy] = useState("updated_desc");
+
   const [jobs, setJobs] = useState([]);
   const [deletingId, setDeletingId] = useState(null);
+  const [deleteConfirmDoc, setDeleteConfirmDoc] = useState(null);
+  const [renameDoc, setRenameDoc] = useState(null);
+  const [renamingId, setRenamingId] = useState(null);
+  const [newTitle, setNewTitle] = useState("");
   const fileInputRef = useRef(null);
 
   const token = localStorage.getItem("token");
@@ -285,19 +289,39 @@ function DocumentLibrary() {
     }
   };
 
-  const handleRename = async (doc) => {
-    const newTitle = window.prompt("New title:", doc.title);
-    if (!newTitle || newTitle === doc.title) return;
-    const res = await api.put(
-      `/documents/${doc.document_id}`,
-      { title: newTitle },
-      { caller: "DocumentLibrary.handleRename", action: "rename_document" }
-    );
-    if (res.ok) {
-      setUploadSuccess("Renamed.");
-      setTimeout(() => setUploadSuccess(""), 3000);
-      fetchDocuments();
+  const handleRenameClick = (doc) => {
+    setRenameDoc(doc);
+    setNewTitle(doc.title);
+  };
+
+  const handleConfirmRename = async () => {
+    if (!renameDoc || !newTitle || newTitle === renameDoc.title) {
+      setRenameDoc(null);
+      setNewTitle("");
+      return;
     }
+    setRenamingId(renameDoc.document_id);
+    try {
+      const res = await api.put(
+        `/documents/${renameDoc.document_id}`,
+        { title: newTitle },
+        { caller: "DocumentLibrary.handleRename", action: "rename_document" }
+      );
+      if (res.ok) {
+        setUploadSuccess("Renamed.");
+        setTimeout(() => setUploadSuccess(""), 3000);
+        fetchDocuments();
+      }
+    } finally {
+      setRenamingId(null);
+      setRenameDoc(null);
+      setNewTitle("");
+    }
+  };
+
+  const handleCancelRename = () => {
+    setRenameDoc(null);
+    setNewTitle("");
   };
 
   const handleStatusChange = async (doc, newStatus) => {
@@ -309,20 +333,24 @@ function DocumentLibrary() {
     if (res.ok) fetchDocuments();
   };
 
-  const handleDelete = async (doc) => {
-    if (
-      !window.confirm(
-        `Permanently delete "${doc.title}"? This cannot be undone. Use Archive to soft-delete instead.`
-      )
-    )
+  const handleDeleteClick = (doc) => {
+    setDeleteConfirmDoc(doc);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmDoc || !token) {
+      setDeleteConfirmDoc(null);
       return;
-    if (!token) return;
-    setDeletingId(doc.document_id);
+    }
+    setDeletingId(deleteConfirmDoc.document_id);
     try {
-      const res = await api.delete(`/documents/${doc.document_id}`, {
-        caller: "DocumentLibrary.handleDelete",
-        action: "delete_document",
-      });
+      const res = await api.delete(
+        `/documents/${deleteConfirmDoc.document_id}`,
+        {
+          caller: "DocumentLibrary.handleDelete",
+          action: "delete_document",
+        }
+      );
       if (!res.ok) {
         let errorMsg = "Failed to delete document.";
         try {
@@ -337,6 +365,7 @@ function DocumentLibrary() {
         setUploadError(errorMsg);
         setTimeout(() => setUploadError(""), 4000);
         setDeletingId(null);
+        setDeleteConfirmDoc(null);
         return;
       }
       setUploadSuccess("Document deleted successfully!");
@@ -350,7 +379,12 @@ function DocumentLibrary() {
       setDeletingId(null);
     } finally {
       setDeletingId(null);
+      setDeleteConfirmDoc(null);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteConfirmDoc(null);
   };
 
   const onPdfLoadSuccess = ({ numPages }) => setPdfNumPages(numPages);
@@ -773,6 +807,137 @@ function DocumentLibrary() {
         </div>
       )}
 
+      {renameDoc && (
+        <div className="doclibrary-modal-overlay">
+          <div className="doclibrary-modal" style={{ maxWidth: "400px" }}>
+            <div className="doclibrary-modal-header">
+              <h2 style={{ margin: 0 }}>Rename Document</h2>
+              <button
+                className="doclibrary-modal-close"
+                onClick={handleCancelRename}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ padding: "1.5rem", borderTop: "1px solid #e5e7eb" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "0.5rem",
+                  fontSize: "0.9rem",
+                  fontWeight: "500",
+                }}
+              >
+                New title:
+              </label>
+              <input
+                type="text"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleConfirmRename();
+                  if (e.key === "Escape") handleCancelRename();
+                }}
+                style={{
+                  width: "100%",
+                  padding: "0.5rem",
+                  marginBottom: "1rem",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "0.375rem",
+                  fontSize: "0.95rem",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+            <div className="doclibrary-modal-actions">
+              <button
+                className="doclibrary-cancel-btn"
+                onClick={handleCancelRename}
+              >
+                Cancel
+              </button>
+              <button
+                className="doclibrary-save-btn"
+                onClick={handleConfirmRename}
+                disabled={
+                  renamingId === renameDoc.document_id ||
+                  !newTitle ||
+                  newTitle === renameDoc.title
+                }
+              >
+                {renamingId === renameDoc.document_id ? "Renaming…" : "Rename"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteConfirmDoc && (
+        <div className="doclibrary-modal-overlay">
+          <div className="doclibrary-modal" style={{ maxWidth: "400px" }}>
+            <div className="doclibrary-modal-header">
+              <h2 style={{ margin: 0, color: "#ef4444" }}>Delete Document</h2>
+              <button
+                className="doclibrary-modal-close"
+                onClick={handleCancelDelete}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ padding: "1.5rem", borderTop: "1px solid #e5e7eb" }}>
+              <p style={{ margin: "0 0 0.75rem 0", fontSize: "0.95rem" }}>
+                Are you sure you want to permanently delete:
+              </p>
+              <p
+                style={{
+                  margin: "0 0 1.5rem 0",
+                  padding: "0.75rem",
+                  background: "#fef2f2",
+                  borderRadius: "0.375rem",
+                  fontSize: "0.9rem",
+                  fontWeight: "500",
+                  color: "#7f1d1d",
+                  wordBreak: "break-word",
+                }}
+              >
+                {deleteConfirmDoc.title}
+              </p>
+              <p style={{ margin: "0", fontSize: "0.85rem", color: "#6b7280" }}>
+                This action cannot be undone. Consider using Archive instead to
+                soft-delete.
+              </p>
+            </div>
+            <div className="doclibrary-modal-actions">
+              <button
+                className="doclibrary-cancel-btn"
+                onClick={handleCancelDelete}
+              >
+                Cancel
+              </button>
+              <button
+                className="doclibrary-delete-btn"
+                onClick={handleConfirmDelete}
+                disabled={deletingId === deleteConfirmDoc.document_id}
+                style={{
+                  background: "#ef4444",
+                  color: "white",
+                  border: "none",
+                  padding: "0.5rem 1rem",
+                  borderRadius: "0.375rem",
+                  cursor: "pointer",
+                  fontWeight: "500",
+                }}
+              >
+                {deletingId === deleteConfirmDoc.document_id
+                  ? "Deleting…"
+                  : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <section className="doclibrary-upload">
         <h2>Upload Document</h2>
         <form onSubmit={handleUpload} className="doclibrary-upload-form">
@@ -947,7 +1112,7 @@ function DocumentLibrary() {
                       </button>
                       <button
                         className="doclibrary-action-btn"
-                        onClick={() => handleRename(doc)}
+                        onClick={() => handleRenameClick(doc)}
                         disabled={deletingId !== null}
                         title="Rename"
                       >
@@ -971,7 +1136,7 @@ function DocumentLibrary() {
                       </button>
                       <button
                         className="doclibrary-action-btn doclibrary-delete-btn"
-                        onClick={() => handleDelete(doc)}
+                        onClick={() => handleDeleteClick(doc)}
                         disabled={deletingId === doc.document_id}
                         title="Permanently delete"
                       >

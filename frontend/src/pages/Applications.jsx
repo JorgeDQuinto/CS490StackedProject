@@ -1491,20 +1491,12 @@ function Applications() {
     if (!deleteTarget) return;
     try {
       setIsDeleting(true);
-      const res = await api.put(
-        `/jobs/${deleteTarget.job_id}`,
-        { stage: "Withdrawn" },
-        {
-          caller: "Applications.handleDeleteApplication",
-          action: "withdraw_job",
-        }
-      );
+      const res = await api.delete(`/jobs/${deleteTarget.job_id}`, {
+        caller: "Applications.handleDeleteApplication",
+        action: "delete_job",
+      });
       if (res.ok) {
-        setJobs((prev) =>
-          prev.map((j) =>
-            j.job_id === deleteTarget.job_id ? { ...j, stage: "Withdrawn" } : j
-          )
-        );
+        setJobs((prev) => prev.filter((j) => j.job_id !== deleteTarget.job_id));
       }
       setDeleteTarget(null);
     } catch {
@@ -1529,10 +1521,10 @@ function Applications() {
 
       <DeleteConfirmModal
         isOpen={!!deleteTarget}
-        title="Withdraw this job?"
+        title="Delete this job?"
         message={
           deleteTarget
-            ? `Mark "${deleteTarget.title} @ ${deleteTarget.company_name}" as Withdrawn? You can restore it later from History.`
+            ? `Delete "${deleteTarget.title} @ ${deleteTarget.company_name}"? This action cannot be undone.`
             : ""
         }
         onCancel={() => setDeleteTarget(null)}
