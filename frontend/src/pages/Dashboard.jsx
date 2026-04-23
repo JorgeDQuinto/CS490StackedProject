@@ -445,104 +445,6 @@ function Dashboard() {
         </div>
       )}
 
-      <div className="dashboard-preview-grid">
-        <div className="preview-card preview-card-jobs">
-          <div className="preview-card-header">
-            <h2>Recent Jobs</h2>
-            <button className="view-more-btn" onClick={scrollToJobBoard}>
-              View More →
-            </button>
-          </div>
-          <div className="preview-card-body">
-            {jobs.length === 0 ? (
-              <p className="preview-placeholder">No jobs yet — add one!</p>
-            ) : (
-              [...jobs]
-                .sort((a, b) => b.job_id - a.job_id)
-                .slice(0, 3)
-                .map((job) => (
-                  <div key={job.job_id} className="preview-job-item">
-                    <div className="preview-job-item-top">
-                      <span className="preview-job-company">
-                        {job.company_name}
-                      </span>
-                      <span
-                        className={`preview-status-badge preview-status-${job.stage?.toLowerCase()}`}
-                      >
-                        {job.stage}
-                      </span>
-                    </div>
-                    <span className="preview-job-title">{job.title}</span>
-                  </div>
-                ))
-            )}
-          </div>
-        </div>
-
-        <div className="preview-card preview-card-apps">
-          <div className="preview-card-header">
-            <h2>Applications</h2>
-            <button
-              className="view-more-btn"
-              onClick={() => navigate("/applications")}
-            >
-              View More →
-            </button>
-          </div>
-          <div className="preview-card-body">
-            {jobs.filter((j) => j.stage !== "Interested").length === 0 ? (
-              <p className="preview-placeholder">No active applications.</p>
-            ) : (
-              [...jobs]
-                .filter((j) => j.stage !== "Interested")
-                .sort((a, b) => b.job_id - a.job_id)
-                .slice(0, 3)
-                .map((job) => (
-                  <div key={job.job_id} className="preview-job-item">
-                    <div className="preview-job-item-top">
-                      <span className="preview-job-company">
-                        {job.company_name}
-                      </span>
-                      <span
-                        className={`preview-status-badge preview-status-${job.stage?.toLowerCase()}`}
-                      >
-                        {job.stage}
-                      </span>
-                    </div>
-                    <span className="preview-job-title">{job.title}</span>
-                  </div>
-                ))
-            )}
-          </div>
-        </div>
-
-        <div className="preview-card preview-card-docs">
-          <div className="preview-card-header">
-            <h2>Documents</h2>
-            <button
-              className="view-more-btn"
-              onClick={() => navigate("/documents")}
-            >
-              View More →
-            </button>
-          </div>
-          <div className="preview-card-body">
-            {documents.length === 0 ? (
-              <p className="preview-placeholder">No documents yet.</p>
-            ) : (
-              documents.slice(0, 2).map((doc) => (
-                <div key={doc.document_id} className="preview-job-item">
-                  <span className="preview-job-company">
-                    {doc.document_type}
-                  </span>
-                  <span className="preview-job-title">{doc.title}</span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-
       <div className="job-board-search-row">
         <input
           className="job-board-search"
@@ -665,6 +567,24 @@ function Dashboard() {
                       : ""
                   }`}
                   onClick={() => setSelectedJob(job)}
+                  style={{
+                    boxShadow: job.deadline
+                      ? (() => {
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          const dl = new Date(job.deadline + "T00:00:00");
+                          const daysLeft = Math.ceil(
+                            (dl - today) / (1000 * 60 * 60 * 24)
+                          );
+                          return daysLeft < 7 && daysLeft >= 0
+                            ? "0 0 12px rgba(239, 68, 68, 0.6)"
+                            : daysLeft < 0
+                              ? "0 0 12px rgba(239, 68, 68, 0.8)"
+                              : undefined;
+                        })()
+                      : undefined,
+                    transition: "all 0.3s ease",
+                  }}
                 >
                   <div className="job-card-top-row">
                     <span className="job-card-company">{job.company_name}</span>
@@ -804,6 +724,13 @@ function Dashboard() {
                       <p>{selectedJob.notes}</p>
                     </div>
                   )}
+                  {selectedJob.outcome_notes && (
+                    <div className="job-detail-section">
+                      <h3>Outcome</h3>
+                      <p>{selectedJob.outcome_notes}</p>
+                    </div>
+                  )}
+
                   {renderActionButtons(selectedJob)}
                 </div>
               </div>
