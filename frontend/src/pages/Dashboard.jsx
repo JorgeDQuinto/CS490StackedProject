@@ -479,43 +479,6 @@ function Dashboard() {
           </div>
         </div>
 
-        <div className="preview-card preview-card-apps">
-          <div className="preview-card-header">
-            <h2>Applications</h2>
-            <button
-              className="view-more-btn"
-              onClick={() => navigate("/applications")}
-            >
-              View More →
-            </button>
-          </div>
-          <div className="preview-card-body">
-            {jobs.filter((j) => j.stage !== "Interested").length === 0 ? (
-              <p className="preview-placeholder">No active applications.</p>
-            ) : (
-              [...jobs]
-                .filter((j) => j.stage !== "Interested")
-                .sort((a, b) => b.job_id - a.job_id)
-                .slice(0, 3)
-                .map((job) => (
-                  <div key={job.job_id} className="preview-job-item">
-                    <div className="preview-job-item-top">
-                      <span className="preview-job-company">
-                        {job.company_name}
-                      </span>
-                      <span
-                        className={`preview-status-badge preview-status-${job.stage?.toLowerCase()}`}
-                      >
-                        {job.stage}
-                      </span>
-                    </div>
-                    <span className="preview-job-title">{job.title}</span>
-                  </div>
-                ))
-            )}
-          </div>
-        </div>
-
         <div className="preview-card preview-card-docs">
           <div className="preview-card-header">
             <h2>Documents</h2>
